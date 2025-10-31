@@ -1,11 +1,32 @@
+import { useNavigate, useLocation } from 'react-router-dom'
 import house from '../assets/house.png'
 
-export default function Hero(){
+export default function Hero() {
+  const navigate = useNavigate()
+  const location = useLocation()
+
+  const scrollToSection = (id) => {
+    // If not on home page, navigate first
+    if (location.pathname !== '/') {
+      navigate('/')
+      setTimeout(() => {
+        const element = document.getElementById(id)
+        if (element) {
+          element.scrollIntoView({ behavior: 'smooth', block: 'start' })
+        }
+      }, 100)
+      return
+    }
+    
+    // Already on home page, just scroll
+    const element = document.getElementById(id)
+    if (element) {
+      element.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    }
+  }
+
   return (
-    // lift the hero up so its background image sits under the fixed header (remove white gap).
-    // h-[calc(100vh+80px)] plus -mt-20 assumes header ~80px tall; adjust if your header height differs.
     <section className="relative h-[calc(100vh+80px)] w-full overflow-hidden -mt-20">
-      {/* Background with house image */}
       <div className="absolute inset-0">
         <img
           src={house}
@@ -31,10 +52,20 @@ export default function Hero(){
         </p>
 
         <div className="flex gap-4">
-          <button className="bg-[#1a3d6b] hover:bg-[#2a5d9b] text-white px-8 py-3 rounded font-medium transition-all duration-300 shadow-lg hover:shadow-xl hover:scale-105">
+          <button
+            onClick={() => scrollToSection('features')}
+            className="bg-[#1a3d6b] hover:bg-[#2a5d9b] text-white px-8 py-3 rounded font-medium 
+                     transition-all duration-300 shadow-lg hover:shadow-xl hover:scale-105"
+          >
             Explore More
           </button>
-          <button className="bg-white/20 hover:bg-white/30 backdrop-blur-sm text-white px-8 py-3 rounded font-medium border border-white/30 transition-all duration-300 shadow-lg hover:shadow-xl hover:scale-105">
+
+          <button
+            onClick={() => scrollToSection('contact')}
+            className="bg-white/20 hover:bg-white/30 backdrop-blur-sm text-white px-8 py-3 rounded 
+                     font-medium border border-white/30 transition-all duration-300 shadow-lg 
+                     hover:shadow-xl hover:scale-105"
+          >
             Contact Us
           </button>
         </div>

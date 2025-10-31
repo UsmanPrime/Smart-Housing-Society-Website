@@ -79,7 +79,7 @@ export default function Features() {
   }, []);
 
   return (
-    <section className="max-w-7xl mx-auto px-6 my-20"> {/* increased vertical margin */}
+    <section id="features" className="max-w-7xl mx-auto px-6 my-16">
       <h3 
         className="text-3xl md:text-4xl font-normal mb-16 text-[#0b1a4a] text-center" 
         style={{ fontFamily: "'DM Serif Display', serif" }}

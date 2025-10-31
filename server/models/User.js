@@ -1,0 +1,17 @@
+import mongoose from 'mongoose';
+
+const userSchema = new mongoose.Schema(
+  {
+    name: { type: String, required: true, trim: true },
+    email: { type: String, required: true, unique: true, lowercase: true, trim: true },
+    passwordHash: { type: String, required: true },
+    phone: { type: String },
+    role: { type: String, enum: ['resident', 'vendor', 'admin'], default: 'resident' },
+    status: { type: String, enum: ['pending', 'approved', 'rejected'], default: 'pending' },
+  },
+  { timestamps: true }
+);
+
+// Index already defined by unique:true in schema, no need to add manually
+const User = mongoose.models.User || mongoose.model('User', userSchema);
+export default User;
