@@ -122,7 +122,7 @@ export default function AdminDashboard() {
     <div className="min-h-screen flex flex-col bg-ng-light">
       <Navbar />
 
-      <main className="flex-grow pt-32 pb-16 px-6">
+      <main className="flex-grow pt-40 pb-16 px-6">
         <div className="max-w-7xl mx-auto">
           {/* Welcome Section */}
           <div className="bg-gradient-to-r from-ng-blue to-ng-accent rounded-2xl shadow-lg p-8 mb-8 text-white">

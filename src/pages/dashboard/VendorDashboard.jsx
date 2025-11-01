@@ -32,10 +32,10 @@ export default function VendorDashboard() {
     <div className="min-h-screen flex flex-col bg-ng-light">
       <Navbar />
 
-      <main className="flex-grow pt-32 pb-16 px-6">
+       <main className="flex-grow pt-40 pb-16 px-6">
         <div className="max-w-7xl mx-auto">
           {/* Welcome Section */}
-          <div className="bg-gradient-to-r from-purple-600 to-purple-800 rounded-2xl shadow-lg p-8 mb-8 text-white">
+          <div className="bg-gradient-to-r from-ng-blue to-ng-accent rounded-2xl shadow-lg p-8 mb-8 text-white">
             <h1 
               className="text-4xl font-normal mb-2"
               style={{ fontFamily: "'DM Serif Display', serif" }}
@@ -50,14 +50,14 @@ export default function VendorDashboard() {
           {/* Dashboard Grid */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
             {/* Active Services Card */}
-            <div className="bg-white rounded-xl shadow-md p-6 hover:shadow-lg transition-shadow border-l-4 border-purple-500">
+            <div className="bg-white rounded-xl shadow-md p-6 hover:shadow-lg transition-shadow border-l-4 border-ng-blue">
               <div className="flex items-center justify-between mb-4">
                 <div>
                   <p className="text-gray-600 text-sm mb-1">Active Services</p>
-                  <div className="text-3xl font-bold text-purple-600">0</div>
+                  <div className="text-3xl font-bold text-ng-blue">0</div>
                 </div>
-                <div className="bg-purple-100 p-3 rounded-lg">
-                  <svg className="w-8 h-8 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <div className="bg-ng-blue/10 p-3 rounded-lg">
+                  <svg className="w-8 h-8 text-ng-blue" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
                   </svg>
                 </div>
@@ -153,7 +153,7 @@ export default function VendorDashboard() {
                 </svg>
               </div>
               
-              <button className="w-full mb-4 bg-purple-600 text-white px-6 py-3 rounded-lg hover:bg-purple-700 transition-colors font-medium flex items-center justify-center gap-2">
+              <button className="w-full mb-4 bg-ng-blue text-white px-6 py-3 rounded-lg hover:bg-ng-accent transition-colors font-medium flex items-center justify-center gap-2">
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
                 </svg>
@@ -228,22 +228,22 @@ export default function VendorDashboard() {
             </h2>
             
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              <button className="p-4 rounded-lg border-2 border-gray-200 hover:border-purple-600 hover:bg-purple-50 transition-all text-center">
-                <svg className="w-8 h-8 mx-auto mb-2 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <button className="p-4 rounded-lg border-2 border-gray-200 hover:border-ng-blue hover:bg-ng-blue/5 transition-all text-center">
+                <svg className="w-8 h-8 mx-auto mb-2 text-ng-blue" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
                 </svg>
                 <p className="text-sm font-medium text-gray-700">View Requests</p>
               </button>
 
-              <button className="p-4 rounded-lg border-2 border-gray-200 hover:border-purple-600 hover:bg-purple-50 transition-all text-center">
-                <svg className="w-8 h-8 mx-auto mb-2 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <button className="p-4 rounded-lg border-2 border-gray-200 hover:border-ng-blue hover:bg-ng-blue/5 transition-all text-center">
+                <svg className="w-8 h-8 mx-auto mb-2 text-ng-blue" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
                 </svg>
                 <p className="text-sm font-medium text-gray-700">Completed Jobs</p>
               </button>
 
-              <button className="p-4 rounded-lg border-2 border-gray-200 hover:border-purple-600 hover:bg-purple-50 transition-all text-center">
-                <svg className="w-8 h-8 mx-auto mb-2 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <button className="p-4 rounded-lg border-2 border-gray-200 hover:border-ng-blue hover:bg-ng-blue/5 transition-all text-center">
+                <svg className="w-8 h-8 mx-auto mb-2 text-ng-blue" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
                 <p className="text-sm font-medium text-gray-700">View Earnings</p>
@@ -251,9 +251,9 @@ export default function VendorDashboard() {
 
               <button 
                 onClick={() => navigate('/')}
-                className="p-4 rounded-lg border-2 border-gray-200 hover:border-purple-600 hover:bg-purple-50 transition-all text-center"
+                className="p-4 rounded-lg border-2 border-gray-200 hover:border-ng-blue hover:bg-ng-blue/5 transition-all text-center"
               >
-                <svg className="w-8 h-8 mx-auto mb-2 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className="w-8 h-8 mx-auto mb-2 text-ng-blue" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
                 </svg>
                 <p className="text-sm font-medium text-gray-700">Contact Support</p>

@@ -71,7 +71,7 @@ export default function Perks(){
       >
         {/* Title inside the box */}
         <div className="text-center mb-12">
-          <h3 className="text-2xl md:text-3xl font-normal" style={{ fontFamily: "'DM Serif Display', serif" }}>
+          <h3 className="text-4xl font-normal" style={{ fontFamily: "'DM Serif Display', serif" }}>
             Perks for Residents
           </h3>
         </div>

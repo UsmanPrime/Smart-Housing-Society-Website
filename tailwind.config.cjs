@@ -7,7 +7,7 @@ module.exports = {
     extend: {
       colors: {
         'ng-blue': '#0b1a4a',
-        'ng-light': '#e8e8ef',
+        'ng-light': '#c3c5ce',
         'ng-accent': '#12265a'
       }
     }

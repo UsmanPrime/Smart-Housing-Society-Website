@@ -32,18 +32,18 @@ export default function ResidentDashboard() {
     <div className="min-h-screen flex flex-col bg-ng-light">
       <Navbar />
 
-      <main className="flex-grow pt-32 pb-16 px-6">
+      <main className="flex-grow pt-40 pb-16 px-6">
         <div className="max-w-7xl mx-auto">
           {/* Welcome Section */}
-          <div className="bg-white rounded-2xl shadow-lg p-8 mb-8">
+          <div className="bg-gradient-to-r from-ng-blue to-ng-accent rounded-2xl shadow-lg p-8 mb-8 text-white">
             <h1 
-              className="text-4xl font-normal text-ng-blue mb-2"
+              className="text-4xl font-normal mb-2"
               style={{ fontFamily: "'DM Serif Display', serif" }}
             >
-              Welcome, {user?.name || 'Resident'}!
-            </h1>
-            <p className="text-lg text-gray-600" style={{ fontFamily: 'Poppins, sans-serif' }}>
               Resident Dashboard
+            </h1>
+            <p className="text-lg opacity-90" style={{ fontFamily: 'Poppins, sans-serif' }}>
+              Welcome, {user?.name || 'Resident'}!
             </p>
           </div>
 
@@ -134,21 +134,21 @@ export default function ResidentDashboard() {
             </div>
 
             {/* Contact Support Card */}
-            <div className="bg-white rounded-xl shadow-md p-6 hover:shadow-lg transition-shadow">
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="text-xl font-semibold text-ng-blue">Contact Support</h3>
-                <svg className="w-8 h-8 text-ng-blue" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-                </svg>
-              </div>
-              <p className="text-gray-600 mb-4">Need help? Get in touch with us</p>
-              <button 
-                onClick={() => navigate('/')}
-                className="bg-ng-blue text-white px-4 py-2 rounded-lg hover:bg-ng-accent transition-colors w-full"
-              >
-                Contact Us
-              </button>
-            </div>
+            <div className="bg-white rounded-xl shadow-md p-6 hover:shadow-lg transition-shadow flex flex-col h-full">
+               <div className="flex items-center justify-between mb-4">
+                 <h3 className="text-xl font-semibold text-ng-blue">Contact Support</h3>
+                 <svg className="w-8 h-8 text-ng-blue" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                 </svg>
+               </div>
+               <p className="text-gray-600 mb-4">Need help? Get in touch with us</p>
+               <button 
+                 onClick={() => navigate('/')}
+                 className="bg-ng-blue text-white px-4 py-2 rounded-lg hover:bg-ng-accent transition-colors w-full mt-auto"
+               >
+                 Contact Us
+               </button>
+             </div>
           </div>
 
           {/* Recent Activity Section */}

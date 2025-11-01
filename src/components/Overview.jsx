@@ -45,7 +45,7 @@ export default function Overview(){
         <div className={`text-center mb-10 transform transition-all duration-1000 delay-200 ease-out
           ${isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-6'}`}>
           <h3
-            className="text-4xl md:text-5xl font-normal tracking-tight"
+            className="text-4xl font-normal tracking-tight"
             style={{ fontFamily: "'DM Serif Display', serif" }}
           >
             Overview

@@ -111,9 +111,9 @@ export default function ContactForm() {
   };
 
   return (
-    <section id="contact" className="max-w-7xl mx-auto px-6 my-16 scroll-mt-28" ref={sectionRef}>
-      {/* Main container with dark blue background and rounded corners */}
-      <div className="bg-[#0b1a4a] rounded-3xl p-8 md:p-12">
+    <section id="contact" className="px-6 my-16 scroll-mt-28" ref={sectionRef}>
+      {/* Main container with dark blue background and rounded corners */} 
+      <div className="max-w-7xl mx-auto bg-[#0b1a4a] text-white rounded-3xl p-8 md:p-16 relative overflow-hidden">
         <div className="grid md:grid-cols-2 gap-12">
           {/* Left: Form with slide-in animation */}
           <div 

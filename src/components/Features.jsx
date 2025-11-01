@@ -81,7 +81,7 @@ export default function Features() {
   return (
     <section id="features" className="max-w-7xl mx-auto px-6 my-16">
       <h3 
-        className="text-3xl md:text-4xl font-normal mb-16 text-[#0b1a4a] text-center" 
+        className="text-4xl font-normal mb-16 text-[#0b1a4a] text-center" 
         style={{ fontFamily: "'DM Serif Display', serif" }}
       >
         Core Features
@@ -89,7 +89,7 @@ export default function Features() {
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-10"> {/* increased gap from 8 to 10 */}
         <FeatureCard title="Online payments & dues" img={paymentImg} icon={paymentIcon} />
-        <FeatureCard title="Complaint managemnt" img={complaintImg} icon={complaintIcon} />
+        <FeatureCard title="Complaint management" img={complaintImg} icon={complaintIcon} />
         <FeatureCard title="Facility booking system" img={bookingImg} icon={bookingIcon} />
         <FeatureCard title="Vendor management" img={vendorImg} icon={vendorIcon} />
       </div>

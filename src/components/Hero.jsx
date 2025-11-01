@@ -54,7 +54,7 @@ export default function Hero() {
         <div className="flex gap-4">
           <button
             onClick={() => scrollToSection('features')}
-            className="bg-[#1a3d6b] hover:bg-[#2a5d9b] text-white px-8 py-3 rounded font-medium 
+            className="bg-[#0f335b] hover:bg-[#2a5d9b] text-white px-8 py-3 rounded font-medium 
                      transition-all duration-300 shadow-lg hover:shadow-xl hover:scale-105"
           >
             Explore More
@@ -62,9 +62,8 @@ export default function Hero() {
 
           <button
             onClick={() => scrollToSection('contact')}
-            className="bg-white/20 hover:bg-white/30 backdrop-blur-sm text-white px-8 py-3 rounded 
-                     font-medium border border-white/30 transition-all duration-300 shadow-lg 
-                     hover:shadow-xl hover:scale-105"
+            className="bg-[#0f335b] hover:bg-[#2a5d9b] text-white px-8 py-3 rounded font-medium 
+                     transition-all duration-300 shadow-lg hover:shadow-xl hover:scale-105"
           >
             Contact Us
           </button>
