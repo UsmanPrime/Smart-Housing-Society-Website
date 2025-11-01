@@ -10,6 +10,9 @@ import ProtectedRoute from './components/ProtectedRoute'
 import ResidentDashboard from './pages/dashboard/ResidentDashboard'
 import AdminDashboard from './pages/dashboard/AdminDashboard'
 import VendorDashboard from './pages/dashboard/VendorDashboard'
+import Announcements from './pages/Announcements'
+import Profile from './pages/Profile'
+import ForgotPassword from './pages/ForgotPassword'
 
 export default function App() {
   return (
@@ -20,6 +23,16 @@ export default function App() {
       <Route path="/complaints" element={<Complaints/>} />
       <Route path="/facility" element={<Facility/>} />
       <Route path="/payments" element={<Payments/>} />
+  <Route path="/announcements" element={<Announcements/>} />
+  <Route path="/forgot-password" element={<ForgotPassword/>} />
+      <Route 
+        path="/profile" 
+        element={
+          <ProtectedRoute allowedRoles={['resident','vendor','admin']}>
+            <Profile />
+          </ProtectedRoute>
+        } 
+      />
       <Route path="/unauthorized" element={<Unauthorized />} />
       
       {/* Protected Dashboard Routes */}

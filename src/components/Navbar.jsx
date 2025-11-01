@@ -40,7 +40,12 @@ export default function Navbar() {
     checkUser();
     // Listen for storage changes (e.g., login in another tab)
     window.addEventListener('storage', checkUser);
-    return () => window.removeEventListener('storage', checkUser);
+    // Listen for explicit user updates within the same tab
+    window.addEventListener('user-updated', checkUser);
+    return () => {
+      window.removeEventListener('storage', checkUser);
+      window.removeEventListener('user-updated', checkUser);
+    };
   }, [location]);
 
   const handleLogout = () => {

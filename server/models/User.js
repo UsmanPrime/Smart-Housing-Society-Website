@@ -8,6 +8,9 @@ const userSchema = new mongoose.Schema(
     phone: { type: String },
     role: { type: String, enum: ['resident', 'vendor', 'admin'], default: 'resident' },
     status: { type: String, enum: ['pending', 'approved', 'rejected'], default: 'pending' },
+    // Password reset (OTP) fields
+    resetOtpHash: { type: String },
+    resetOtpExpires: { type: Date },
   },
   { timestamps: true }
 );

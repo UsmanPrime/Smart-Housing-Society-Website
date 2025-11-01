@@ -1,6 +1,8 @@
 import express from 'express';
 import User from '../models/User.js';
 import auth from '../middleware/auth.js';
+import sendEmail from '../utils/sendEmail.js';
+import { accountApprovedTemplate, accountRejectedTemplate } from '../utils/emailTemplates.js';
 
 const router = express.Router();
 
@@ -73,6 +75,14 @@ router.put('/approve/:userId', auth, requireAdmin, async (req, res) => {
     user.status = 'approved';
     await user.save();
 
+    // Notify user (best-effort)
+    try {
+      const { subject, html } = accountApprovedTemplate({ name: user.name });
+      await sendEmail({ to: user.email, subject, html });
+    } catch (e) {
+      console.warn('Approval email failed:', e?.message || e);
+    }
+
     res.json({
       success: true,
       message: 'User approved successfully',
@@ -109,6 +119,14 @@ router.put('/reject/:userId', auth, requireAdmin, async (req, res) => {
 
     user.status = 'rejected';
     await user.save();
+
+    // Notify user (best-effort)
+    try {
+      const { subject, html } = accountRejectedTemplate({ name: user.name });
+      await sendEmail({ to: user.email, subject, html });
+    } catch (e) {
+      console.warn('Rejection email failed:', e?.message || e);
+    }
 
     res.json({
       success: true,

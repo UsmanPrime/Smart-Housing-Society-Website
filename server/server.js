@@ -6,6 +6,8 @@ import bodyParser from 'body-parser';
 import mongoose from 'mongoose';
 import authRouter from './routes/auth.js';
 import adminRouter from './routes/admin.js';
+import announcementsRouter from './routes/announcements.js';
+import usersRouter from './routes/users.js';
 
 dotenv.config();
 
@@ -55,6 +57,12 @@ app.use('/api/auth', authRouter);
 
 // Admin routes
 app.use('/api/admin', adminRouter);
+
+// Announcements routes
+app.use('/api/announcements', announcementsRouter);
+
+// Users (profile) routes
+app.use('/api/users', usersRouter);
 
 // Contact form submission endpoint
 app.post('/api/contact', async (req, res) => {

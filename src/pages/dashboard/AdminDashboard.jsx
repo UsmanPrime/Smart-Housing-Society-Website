@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import Navbar from '../../components/Navbar';
 import Footer from '../../components/Footer';
+import AnnouncementsList from '../../components/AnnouncementsList';
 
 export default function AdminDashboard() {
   const [user, setUser] = useState(null);
@@ -376,19 +377,22 @@ export default function AdminDashboard() {
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5.882V19.24a1.76 1.76 0 01-3.417.592l-2.147-6.15M18 13a3 3 0 100-6M5.436 13.683A4.001 4.001 0 017 6h1.832c4.1 0 7.625-1.234 9.168-3v14c-1.543-1.766-5.067-3-9.168-3H7a3.988 3.988 0 01-1.564-.317z" />
                 </svg>
               </div>
-              
-              <button className="w-full mb-4 bg-ng-blue text-white px-6 py-3 rounded-lg hover:bg-ng-accent transition-colors font-medium flex items-center justify-center gap-2">
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                </svg>
-                Create New Announcement
-              </button>
-              
-              <div className="text-center py-8 text-gray-500">
-                <svg className="w-12 h-12 mx-auto mb-3 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" />
-                </svg>
-                <p>No announcements yet</p>
+              <div className="flex items-center justify-between mb-4">
+                <button 
+                  onClick={() => navigate('/announcements')}
+                  className="bg-ng-blue text-white px-4 py-2 rounded-lg hover:bg-ng-accent transition-colors"
+                >
+                  Manage Announcements
+                </button>
+                <button 
+                  onClick={() => navigate('/announcements')}
+                  className="text-ng-blue hover:underline"
+                >
+                  View all →
+                </button>
+              </div>
+              <div className="max-h-80 overflow-y-auto">
+                <AnnouncementsList limit={5} />
               </div>
             </div>
           </div>
