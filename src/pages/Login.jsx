@@ -98,7 +98,7 @@ export default function Login() {
 
       {/* Full-bleed background */}
       <main
-        className="relative flex-grow flex items-center justify-center min-h-screen pt-24" // added pt-24 for navbar spacing
+        className="relative flex-grow flex items-center justify-center min-h-screen pt-32 md:pt-40" // extra top padding for spacing from navbar
         style={{
           backgroundImage: `url(${loginImg})`,
           backgroundPosition: 'top center',
@@ -121,7 +121,7 @@ export default function Login() {
               Increase max-w-2xl to make inputs wider, or reduce for smaller. */}
           <div className="mx-auto max-w-2xl">
             {/* Header: apply DM Serif Display to title */}
-            <div className="text-left mb-8">
+            <div className="text-center mb-8">
               <h1
                 className="text-4xl font-normal text-white mb-2"
                 style={{ fontFamily: `"DM Serif Display", serif` }}

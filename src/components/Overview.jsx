@@ -33,46 +33,42 @@ export default function Overview(){
   return (
     <section
       ref={sectionRef}
-      className="px-6 my-20"
+      className="px-8 my-20"
       style={{ fontFamily: "'Poppins', sans-serif" }}
     >
       <div
-        className={`max-w-7xl mx-auto bg-[#0b1a4a] text-white rounded-3xl p-8 md:p-20 relative overflow-hidden
+        className={`w-full mx-auto bg-[#0b1a4a] text-white rounded-3xl p-8 md:p-16 relative overflow-hidden
         transform transition-all duration-1000 ease-out
         ${isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}
       >
-        {/* Title animation */}
-        <div className={`text-center mb-10 transform transition-all duration-1000 delay-200 ease-out
+        {/* Title animation - Centered */}
+        <div className={`text-center mb-12 transform transition-all duration-1000 delay-200 ease-out
           ${isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-6'}`}>
           <h3
-            className="text-4xl font-normal tracking-tight"
+            className="text-4xl md:text-5xl font-normal tracking-tight"
             style={{ fontFamily: "'DM Serif Display', serif" }}
           >
             Overview
           </h3>
         </div>
 
-        <div className="grid md:grid-cols-2 gap-12 items-center">
-          {/* LEFT: Text animation */}
+        <div className="grid md:grid-cols-2 gap-8 md:gap-16 items-center max-w-7xl mx-auto">
+          {/* LEFT: Text animation - Better alignment */}
           <div
-            className={`space-y-6 pr-4 transition-all duration-1000 ease-out delay-300
+            className={`space-y-5 transition-all duration-1000 ease-out delay-300
             ${isVisible ? 'opacity-100 translate-x-0' : 'opacity-0 -translate-x-12'}`}
           >
-            <p className="text-lg text-white/90 leading-relaxed">
-              Welcome to <span className="font-semibold text-white">NextGen Residency</span>, a
-              modern housing society designed to bring comfort, convenience, and
-              innovation to community living.
+            <p className="text-base md:text-lg text-white/95 leading-relaxed text-left">
+              Welcome to NextGen Residency, a modern housing society designed to bring comfort, convenience, and innovation to community living. Our vision is to create a society where residents enjoy not just a home, but a smarter and more connected lifestyle.
             </p>
 
-            <p className="text-lg text-white/90 leading-relaxed">
-              We provide a secure, transparent, and well-managed environment for
-              residents through an advanced digital platform that connects
-              homeowners, administrators, and service providers seamlessly.
+            <p className="text-base md:text-lg text-white/95 leading-relaxed text-left">
+              At NextGen Residency, we are committed to providing a secure, transparent, and well-managed environment for all our residents. To achieve this, we have introduced a dedicated digital platform that ensures seamless interaction between residents, administrators, and service providers.
             </p>
 
             <button
-              className="bg-white text-[#0b1a4a] px-10 py-3 rounded-md text-lg font-semibold shadow-md
-                         hover:bg-gray-100 transform hover:scale-105 transition-all duration-200"
+              className="bg-white text-[#0b1a4a] px-8 py-3 rounded-lg text-base font-semibold shadow-lg
+                         hover:bg-gray-100 transform hover:scale-105 transition-all duration-200 mt-2"
             >
               Learn More
             </button>

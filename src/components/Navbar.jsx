@@ -95,7 +95,7 @@ export default function Navbar() {
       <nav className="relative max-w-7xl mx-auto px-6 py-4 flex items-center">
         {/* Left: Logo with dynamic size */}
         <div className="flex items-center z-20">
-          <Link to="/">
+          <Link to="/" onClick={handleHomeClick}>
             <img
               src={logo}
               alt="NEXTGEN logo"
@@ -108,7 +108,7 @@ export default function Navbar() {
         {/* Center: links absolutely centered so they sit over the hero image */}
         <ul className="hidden md:flex items-center gap-8 text-white text-lg font-semibold absolute left-1/2 transform -translate-x-1/2 z-10">
           <li>
-            <Link to="/" className="relative group py-2 inline-block">
+            <Link to="/" onClick={handleHomeClick} className="relative group py-2 inline-block">
               <span className="transition-colors duration-250 group-hover:text-[#c7e0ff]">Home</span>
               <span className="absolute bottom-0 left-0 w-0 h-[3px] bg-[#c7e0ff] transition-all duration-250 group-hover:w-full"></span>
             </Link>

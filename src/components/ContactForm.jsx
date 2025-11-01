@@ -111,121 +111,107 @@ export default function ContactForm() {
   };
 
   return (
-    <section id="contact" className="px-6 my-16 scroll-mt-28" ref={sectionRef}>
-      {/* Main container with dark blue background and rounded corners */} 
-      <div className="max-w-7xl mx-auto bg-[#0b1a4a] text-white rounded-3xl p-8 md:p-16 relative overflow-hidden">
-        <div className="grid md:grid-cols-2 gap-12">
-          {/* Left: Form with slide-in animation */}
-          <div 
-            className={`w-full transition-all duration-1000 ease-out
-              ${isVisible ? 'opacity-100 translate-x-0' : 'opacity-0 -translate-x-12'}`}
-          >
-            <h2 className="text-4xl text-white mb-3" style={{ fontFamily: "'DM Serif Display', serif" }}>
-              Contact Us
+    <section id="contact" className="px-8 my-16 scroll-mt-28" ref={sectionRef}>
+      {/* Main container with light background and centered content */} 
+      <div className="w-full mx-auto bg-[#d5d8e1] rounded-[30px] p-12 md:p-16 relative overflow-hidden">
+        <div className="max-w-4xl mx-auto">
+          {/* Centered header */}
+          <div className="text-center mb-10">
+            <h2 className="text-4xl md:text-5xl text-[#0b1a4a] mb-4" style={{ fontFamily: "'DM Serif Display', serif" }}>
+              Let's Talk
             </h2>
-            <p className="text-white/80 text-lg mb-8">
+            <p className="text-[#0b1a4a] text-lg">
               Contact us today to learn more about our services.
             </p>
+          </div>
 
-            <form className="space-y-6" onSubmit={handleSubmit}>
-              {/* Name & Email row */}
-              <div className="grid md:grid-cols-2 gap-6">
-                <input
-                  type="text"
-                  name="name"
-                  value={formData.name}
-                  onChange={handleChange}
-                  placeholder="Name"
-                  required
-                  className="w-full px-4 py-3 rounded-xl bg-[#162b5e] text-white placeholder:text-white/70 border border-white/10 focus:border-white/30 outline-none transition-colors"
-                />
-                <input
-                  type="email"
-                  name="email"
-                  value={formData.email}
-                  onChange={handleChange}
-                  placeholder="Email"
-                  required
-                  className="w-full px-4 py-3 rounded-xl bg-[#162b5e] text-white placeholder:text-white/70 border border-white/10 focus:border-white/30 outline-none transition-colors"
-                />
-              </div>
-
-              {/* Phone */}
+          {/* Form */}
+          <form className="space-y-6" onSubmit={handleSubmit}>
+            {/* Name & Email row */}
+            <div className="grid md:grid-cols-2 gap-6">
               <input
-                type="tel"
-                name="phone"
-                value={formData.phone}
+                type="text"
+                name="name"
+                value={formData.name}
                 onChange={handleChange}
-                placeholder="Phone"
-                className="w-full px-4 py-3 rounded-xl bg-[#162b5e] text-white placeholder:text-white/70 border border-white/10 focus:border-white/30 outline-none transition-colors"
-              />
-
-              {/* Message */}
-              <textarea
-                name="message"
-                value={formData.message}
-                onChange={handleChange}
-                placeholder="Message"
-                rows="6"
+                placeholder="NAME"
                 required
-                className="w-full px-4 py-3 rounded-xl bg-[#162b5e] text-white placeholder:text-white/70 border border-white/10 focus:border-white/30 outline-none transition-colors resize-none"
-              ></textarea>
+                className="w-full px-6 py-4 rounded-2xl bg-[#001149] text-white placeholder:text-white/70 placeholder:uppercase border-none outline-none transition-colors text-sm"
+              />
+              <input
+                type="email"
+                name="email"
+                value={formData.email}
+                onChange={handleChange}
+                placeholder="EMAIL"
+                required
+                className="w-full px-6 py-4 rounded-2xl bg-[#001149] text-white placeholder:text-white/70 placeholder:uppercase border-none outline-none transition-colors text-sm"
+              />
+            </div>
 
-              {/* Rectangular reCAPTCHA box with increased size */}
-              <div className="flex items-center gap-6 py-3 px-6 bg-white w-fit">
-                <div className="w-8 h-8 border-2 border-gray-300 flex items-center justify-center">
-                  <input 
-                    type="checkbox" 
-                    checked={isRobotChecked}
-                    onChange={(e) => setIsRobotChecked(e.target.checked)}
-                    className="w-4 h-4 cursor-pointer" 
-                    id="recaptcha"
-                  />
-                </div>
-                <label htmlFor="recaptcha" className="text-gray-600 text-base cursor-pointer">I'm not a robot</label>
-                <img src={recaptchaIcon} alt="reCAPTCHA" className="w-8 h-8 ml-2" />
+            {/* Phone */}
+            <input
+              type="tel"
+              name="phone"
+              value={formData.phone}
+              onChange={handleChange}
+              placeholder="PHONE"
+              className="w-full px-6 py-4 rounded-2xl bg-[#001149] text-white placeholder:text-white/70 placeholder:uppercase border-none outline-none transition-colors text-sm"
+            />
+
+            {/* Message */}
+            <textarea
+              name="message"
+              value={formData.message}
+              onChange={handleChange}
+              placeholder="MESSAGE"
+              rows="6"
+              required
+              className="w-full px-6 py-4 rounded-2xl bg-[#001149] text-white placeholder:text-white/70 placeholder:uppercase border-none outline-none transition-colors resize-none text-sm"
+            ></textarea>
+
+            {/* reCAPTCHA box */}
+            <div className="inline-flex items-center gap-4 py-4 px-6 bg-[#001149] rounded-2xl">
+              <div className="w-7 h-7 border-2 border-white/40 flex items-center justify-center bg-transparent">
+                <input 
+                  type="checkbox" 
+                  checked={isRobotChecked}
+                  onChange={(e) => setIsRobotChecked(e.target.checked)}
+                  className="w-4 h-4 cursor-pointer accent-white" 
+                  id="recaptcha"
+                />
               </div>
+              <label htmlFor="recaptcha" className="text-white text-base cursor-pointer">I'm not a robot</label>
+              <img src={recaptchaIcon} alt="reCAPTCHA" className="w-10 h-10 ml-2" />
+            </div>
 
-              {/* Status Message */}
-              {submitStatus.message && (
-                <div className={`p-4 rounded-xl ${
-                  submitStatus.type === 'success' 
-                    ? 'bg-green-500/20 text-green-100 border border-green-500/30' 
-                    : 'bg-red-500/20 text-red-100 border border-red-500/30'
-                }`}>
-                  {submitStatus.message}
-                </div>
-              )}
+            {/* Status Message */}
+            {submitStatus.message && (
+              <div className={`p-4 rounded-2xl ${
+                submitStatus.type === 'success' 
+                  ? 'bg-green-500/20 text-green-800 border border-green-500/30' 
+                  : 'bg-red-500/20 text-red-800 border border-red-500/30'
+              }`}>
+                {submitStatus.message}
+              </div>
+            )}
 
-              {/* Submit Button */}
+            {/* Submit Button with proper spacing and alignment */}
+            <div className="pt-4">
               <button
                 type="submit"
                 disabled={isSubmitting}
-                className={`bg-white text-[#0b1a4a] px-8 py-3 rounded-xl text-lg font-medium 
+                className={`bg-[#001149] text-white px-10 py-4 rounded-2xl text-base font-medium 
                          transition-all duration-300 transform
                          ${isSubmitting 
                            ? 'opacity-50 cursor-not-allowed' 
-                           : 'hover:bg-gray-100 hover:scale-105'
+                           : 'hover:bg-[#0b1a4a] hover:scale-105'
                          }`}
               >
-                {isSubmitting ? 'Sending...' : 'Submit Now'}
+                {isSubmitting ? 'Sending...' : 'Submit'}
               </button>
-            </form>
-          </div>
-
-          {/* Right: Image with slide-in animation */}
-          <div 
-            className={`relative hidden md:block transition-all duration-1000 ease-out delay-300
-              ${isVisible ? 'opacity-100 translate-x-0' : 'opacity-0 translate-x-12'}`}
-          >
-            <img
-              src={contactImage}
-              alt="Building exterior"
-              className="w-full h-full object-cover rounded-3xl"
-            />
-            {/* Dark gradient overlay */}
-            {/* <div className="absolute inset-0 bg-gradient-to-br from-[#0b1a4a]/80 via-transparent to-transparent rounded-3xl"></div> */}
-          </div>
+            </div>
+          </form>
         </div>
       </div>
     </section>

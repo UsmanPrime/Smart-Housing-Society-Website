@@ -5,28 +5,25 @@ import lady from '../assets/lady.jpg'
 
 const Perk = ({title, img, index, isVisible}) => (
   <div 
-    className={`group relative w-80 transition-all duration-700 ease-out
+    className={`group relative w-full max-w-sm transition-all duration-700 ease-out
       ${isVisible 
         ? 'opacity-100 translate-y-0' 
         : 'opacity-0 translate-y-12'}`}
     style={{ transitionDelay: `${index * 200}ms` }}
   >
-    <div className="group relative w-80 transition-all duration-300 hover:transform hover:scale-105"> {/* Fixed width w-80 */}
-    <div className="rounded-[2rem] overflow-hidden shadow-lg border border-white/10">
-      <div className="relative h-56">
+    <div className="rounded-[2rem] overflow-hidden shadow-lg border-[3px] border-white/40 transition-all duration-300 hover:transform hover:scale-105 hover:shadow-2xl">
+      <div className="relative h-64 overflow-hidden">
         <img 
           src={img} 
           alt={title} 
-          className="w-full h-full object-cover"
+          className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
         />
-        <div className="absolute inset-0 bg-gradient-to-b from-transparent to-black/30"></div>
       </div>
       
-      <div className="p-4 bg-[#0b1a4a] text-white text-center text-lg min-h-[4rem] flex items-center justify-center">
-        {title}
+      <div className="p-5 bg-[#0a1942]/80 backdrop-blur-sm text-white text-center text-lg font-normal min-h-[5.5rem] flex items-center justify-center rounded-b-[2rem]">
+        <span className="leading-relaxed">{title}</span>
       </div>
     </div>
-  </div>
   </div>
 )
 
@@ -63,24 +60,24 @@ export default function Perks(){
   }, []);
 
   return (
-    <section className="px-6 my-16" ref={sectionRef}>
+    <section className="px-8 py-16" ref={sectionRef}>
       <div 
-        className={`max-w-7xl mx-auto bg-[#0b1a4a] text-white rounded-3xl p-8 md:p-16 relative overflow-hidden
+        className={`w-full mx-auto bg-[#020E4B] text-white rounded-[30px] p-12 md:p-20 relative overflow-hidden
           transition-all duration-700 ease-out
           ${isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}
       >
-        {/* Title inside the box */}
-        <div className="text-center mb-12">
-          <h3 className="text-4xl font-normal" style={{ fontFamily: "'DM Serif Display', serif" }}>
+        {/* Title inside the box - Centered */}
+        <div className="text-center mb-14">
+          <h3 className="text-4xl md:text-5xl font-normal" style={{ fontFamily: "'DM Serif Display', serif" }}>
             Perks for Residents
           </h3>
         </div>
 
-        {/* Cards container with consistent gap */}
-        <div className="flex flex-wrap gap-12 justify-center">
-          <Perk title="Safe, secure & easy-to-use platform" img={safety} index={0} isVisible={isVisible}/>
-          <Perk title="Transparent communication" img={comms} index={1} isVisible={isVisible}/>
-          <Perk title="Faster issue resolution" img={lady} index={2} isVisible={isVisible}/>
+        {/* Cards container with consistent gap and centering */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-10 justify-items-center max-w-7xl mx-auto">
+          <Perk title={<>Safe, secure<br/>& easy-to-use platform</>} img={safety} index={0} isVisible={isVisible}/>
+          <Perk title={<>Transparent<br/>communication</>} img={comms} index={1} isVisible={isVisible}/>
+          <Perk title={<>Faster issue<br/>resolution</>} img={lady} index={2} isVisible={isVisible}/>
         </div>
       </div>
     </section>
