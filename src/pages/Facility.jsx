@@ -4,6 +4,21 @@ import Footer from "../components/Footer";
 import facilityIllustration from "../assets/facility.png";
 import facilityHome from "../assets/facilityHOME.jpeg";
 import BookingFormInline from "../components/facility/BookingFormInline"; // added
+import calendar from "../assets/calendar.jpg";
+import conflict from "../assets/conflict.jpg";
+import rules from "../assets/rules.jpg";
+import reminders from "../assets/reminders.jpg";
+import adminImg from "../assets/admin.jpg";
+import book from "../assets/book.jpg";
+
+const cards = [
+  { title: "Live", subtitle: "Calendar View", img: calendar },
+  { title: "Smart", subtitle: "Conflict Prevention", img: conflict },
+  { title: "Tiered", subtitle: "Access Rules", img: rules },
+  { title: "Auto-", subtitle: "Reminders", img: reminders },
+  { title: "Admin", subtitle: "Overview Dashboard", img: adminImg },
+  { title: "Booking", subtitle: "History & Analytics", img: book },
+];
 
 export default function FacilityPage() {
   const [visibleCards, setVisibleCards] = useState([]);
@@ -86,14 +101,7 @@ export default function FacilityPage() {
               py-12 mx-auto w-full max-w-[1800px]">
 
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-x-16 gap-y-12">
-              {[
-                ["Live", "Calendar View", "from-slate-300 to-slate-100"],
-                ["Smart", "Conflict Prevention", "from-rose-200 to-rose-100"],
-                ["Tiered", "Access Rules", "from-slate-200 to-slate-100"],
-                ["Auto-", "Reminders", "from-amber-200 to-amber-100"],
-                ["Admin", "Overview Dashboard", "from-pink-200 to-pink-100"],
-                ["Booking", "History & Analytics", "from-emerald-200 to-emerald-100"],
-              ].map(([title, subtitle, gradient], index) => (
+              {cards.map(({ title, subtitle, img }, index) => (
                 <div
                   key={index}
                   ref={(el) => (cardRefs.current[index] = el)}
@@ -105,8 +113,10 @@ export default function FacilityPage() {
                         : "opacity-0 translate-y-10"
                     }`}
                 >
-                  <div
-                    className={`h-[75%] bg-gradient-to-br ${gradient} transition-all duration-300 hover:brightness-110`}
+                  <img
+                    src={img}
+                    alt={`${title} ${subtitle}`}
+                    className="h-[75%] w-full object-cover transition-all duration-300 hover:brightness-110"
                   />
                   <div className="h-[25%] p-5 text-center text-white flex items-center justify-center">
                     <span className="text-lg font-normal leading-relaxed">
