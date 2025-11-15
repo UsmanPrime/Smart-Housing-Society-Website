@@ -3,10 +3,16 @@ import { useNavigate } from 'react-router-dom';
 import Navbar from '../../components/Navbar';
 import Footer from '../../components/Footer';
 import AnnouncementsList from '../../components/AnnouncementsList';
+import { useBookingsStore } from '../../hooks/useBookingsStore';
+import BookingLegend from '../../components/facility/BookingLegend';
+import BookingDetailModal from '../../components/facility/BookingDetailModal';
 
 export default function ResidentDashboard() {
   const [user, setUser] = useState(null);
+  const [selectedBooking, setSelectedBooking] = useState(null);
   const navigate = useNavigate();
+
+  const { listMyBookings, listFacilities, refresh, loading, error } = useBookingsStore();
 
   useEffect(() => {
     const userStr = localStorage.getItem('user');
@@ -18,8 +24,6 @@ export default function ResidentDashboard() {
         console.error('Error parsing user data:', e);
       }
     }
-
-    // Load fonts
     const loadFonts = async () => {
       await Promise.all([
         import('@fontsource/dm-serif-display'),
@@ -28,6 +32,22 @@ export default function ResidentDashboard() {
     };
     loadFonts();
   }, []);
+
+  useEffect(() => { refresh(); }, [refresh]);
+
+  const myBookings = listMyBookings(user?.id || 'resident1');
+  const facMap = Object.fromEntries(listFacilities().map(f => [f.id, f.name]));
+
+  const now = Date.now();
+  const activeCount = myBookings.filter(
+    b => !['cancelled','rejected'].includes(b.status) && new Date(b.end).getTime() >= now
+  ).length;
+
+  const statusColor =
+    (s) => s==='approved' ? 'text-emerald-600' :
+           s==='pending'  ? 'text-amber-600'  :
+           s==='rejected' ? 'text-rose-600'   :
+           s==='cancelled'? 'text-slate-500'  : 'text-blue-600';
 
   return (
     <div className="min-h-screen flex flex-col bg-ng-light">
@@ -50,7 +70,7 @@ export default function ResidentDashboard() {
 
           {/* Dashboard Grid */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {/* Quick Stats Card */}
+            {/* My Profile */}
             <div className="bg-white rounded-xl shadow-md p-6 hover:shadow-lg transition-shadow">
               <div className="flex items-center justify-between mb-4">
                 <h3 className="text-xl font-semibold text-ng-blue">My Profile</h3>
@@ -68,7 +88,7 @@ export default function ResidentDashboard() {
               </button>
             </div>
 
-            {/* Complaints Card */}
+            {/* My Complaints */}
             <div className="bg-white rounded-xl shadow-md p-6 hover:shadow-lg transition-shadow">
               <div className="flex items-center justify-between mb-4">
                 <h3 className="text-xl font-semibold text-ng-blue">My Complaints</h3>
@@ -86,7 +106,7 @@ export default function ResidentDashboard() {
               </button>
             </div>
 
-            {/* Payments Card */}
+            {/* Payments */}
             <div className="bg-white rounded-xl shadow-md p-6 hover:shadow-lg transition-shadow">
               <div className="flex items-center justify-between mb-4">
                 <h3 className="text-xl font-semibold text-ng-blue">Payments</h3>
@@ -104,25 +124,60 @@ export default function ResidentDashboard() {
               </button>
             </div>
 
-            {/* Facility Booking Card */}
-            <div className="bg-white rounded-xl shadow-md p-6 hover:shadow-lg transition-shadow">
+            {/* Facility Booking — single card with list + legend and scroll */}
+            <div className="bg-white rounded-xl shadow-md p-6 hover:shadow-lg transition-shadow flex flex-col h-full">
               <div className="flex items-center justify-between mb-4">
                 <h3 className="text-xl font-semibold text-ng-blue">Facility Booking</h3>
                 <svg className="w-8 h-8 text-ng-blue" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
                 </svg>
               </div>
-              <div className="text-3xl font-bold text-ng-blue mb-2">0</div>
-              <p className="text-gray-600 mb-4">Active bookings</p>
-              <button 
+
+              <div className="text-3xl font-bold text-ng-blue mb-1">{activeCount}</div>
+              <p className="text-gray-600 mb-2">Active bookings</p>
+
+              <div className="mt-1 mb-3">
+                <BookingLegend />
+              </div>
+
+              <div className="mb-4 max-h-60 overflow-y-auto pr-1">
+                {loading && <div className="text-sm">Loading…</div>}
+                {error && <div className="text-sm text-rose-600">{error}</div>}
+                <ul className="space-y-2">
+                  {myBookings.map(b => (
+                    <li key={b.id} className="rounded-md px-4 py-3 flex flex-col md:flex-row md:items-center md:justify-between gap-2 border">
+                      <div>
+                        <div className="font-medium">{b.title}</div>
+                        <div className="text-xs text-gray-600">
+                          {facMap[b.facilityId]} • {new Date(b.start).toLocaleDateString()} {new Date(b.start).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} - {new Date(b.end).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <span className={`text-xs font-medium ${statusColor(b.status)}`}>{b.status}</span>
+                        <button
+                          onClick={() => setSelectedBooking(b)}
+                          className="text-xs px-3 py-1 rounded bg-ng-blue text-white"
+                        >
+                          Details
+                        </button>
+                      </div>
+                    </li>
+                  ))}
+                  {myBookings.length === 0 && !loading && (
+                    <li className="text-sm text-gray-600">No bookings yet.</li>
+                  )}
+                </ul>
+              </div>
+
+              <button
                 onClick={() => navigate('/facility')}
-                className="bg-ng-blue text-white px-4 py-2 rounded-lg hover:bg-ng-accent transition-colors w-full"
+                className="mt-auto bg-ng-blue text-white px-4 py-2 rounded-lg hover:bg-ng-accent transition-colors w-full"
               >
                 Book Facility
               </button>
             </div>
 
-            {/* Announcements Card */}
+            {/* Announcements */}
             <div className="bg-white rounded-xl shadow-md p-6 hover:shadow-lg transition-shadow">
               <div className="flex items-center justify-between mb-4">
                 <h3 className="text-xl font-semibold text-ng-blue">Announcements</h3>
@@ -141,7 +196,7 @@ export default function ResidentDashboard() {
               </button>
             </div>
 
-            {/* Contact Support Card */}
+            {/* Contact Support */}
             <div className="bg-white rounded-xl shadow-md p-6 hover:shadow-lg transition-shadow flex flex-col h-full">
                <div className="flex items-center justify-between mb-4">
                  <h3 className="text-xl font-semibold text-ng-blue">Contact Support</h3>
@@ -159,7 +214,7 @@ export default function ResidentDashboard() {
              </div>
           </div>
 
-          {/* Recent Activity Section */}
+          {/* Recent Activity */}
           <div className="bg-white rounded-2xl shadow-lg p-8 mt-8">
             <h2 
               className="text-2xl font-normal text-ng-blue mb-6"
@@ -178,6 +233,14 @@ export default function ResidentDashboard() {
       </main>
 
       <Footer />
+
+      {selectedBooking && (
+        <BookingDetailModal
+          booking={selectedBooking}
+          facilityName={facMap[selectedBooking.facilityId]}
+          onClose={() => setSelectedBooking(null)}
+        />
+      )}
     </div>
   );
 }

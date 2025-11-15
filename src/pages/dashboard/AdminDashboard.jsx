@@ -4,6 +4,8 @@ import axios from 'axios';
 import Navbar from '../../components/Navbar';
 import Footer from '../../components/Footer';
 import AnnouncementsList from '../../components/AnnouncementsList';
+import BookingLegend from '../../components/facility/BookingLegend';
+import { useBookingsStore } from '../../hooks/useBookingsStore';
 
 export default function AdminDashboard() {
   const [user, setUser] = useState(null);
@@ -14,7 +16,23 @@ export default function AdminDashboard() {
   const [showVendors, setShowVendors] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [showAllBookings, setShowAllBookings] = useState(false);
+  const [facilityFilter, setFacilityFilter] = useState('all');
+  const [statusFilter, setStatusFilter] = useState('pending');
+  const [dateFrom, setDateFrom] = useState('');
+  const [dateTo, setDateTo] = useState('');
+  const [reasonDlg, setReasonDlg] = useState({ open: false, id: null, action: 'approve' });
   const navigate = useNavigate();
+
+  const {
+    listFacilities,
+    bookings,
+    refresh,
+    loading: bookingsLoading,
+    error: bookingsError,
+    approveBooking,
+    rejectBooking
+  } = useBookingsStore();
 
   useEffect(() => {
     const userStr = localStorage.getItem('user');
@@ -118,11 +136,90 @@ export default function AdminDashboard() {
     }
   };
 
+  // Refresh bookings when filters change AND panel is open
+  useEffect(() => {
+    if (showAllBookings) {
+      refresh({
+        status: statusFilter === 'all' ? undefined : statusFilter,
+        facilityId: facilityFilter === 'all' ? undefined : facilityFilter,
+        dateFrom: dateFrom || undefined,
+        dateTo: dateTo || undefined
+      });
+    }
+  }, [showAllBookings, facilityFilter, statusFilter, dateFrom, dateTo, refresh]);
+
+  const facilities = listFacilities();
+  const facMap = Object.fromEntries(facilities.map(f => [f.id, f.name]));
+
+  // Upcoming bookings (next 5 soonest, pending or approved)
+  const now = Date.now();
+  const upcoming = bookings
+    .filter(b =>
+      ['pending', 'approved'].includes(b.status) &&
+      new Date(b.start).getTime() >= now
+    )
+    .sort((a, b) => new Date(a.start) - new Date(b.start))
+    .slice(0, 5);
+
+  // Reason dialog handlers
+  const openReason = (id, action) => setReasonDlg({ open: true, id, action });
+  const closeReason = () => setReasonDlg({ open: false, id: null, action: 'approve' });
+  const confirmReason = async (reasonText) => {
+    if (!reasonDlg.id) return;
+    if (reasonDlg.action === 'approve') {
+      await approveBooking(reasonDlg.id, reasonText, user?.id || 'admin1');
+    } else {
+      await rejectBooking(reasonDlg.id, reasonText, user?.id || 'admin1');
+    }
+    closeReason();
+    refresh({
+      status: statusFilter === 'all' ? undefined : statusFilter,
+      facilityId: facilityFilter === 'all' ? undefined : facilityFilter,
+      dateFrom: dateFrom || undefined,
+      dateTo: dateTo || undefined
+    });
+  };
+
+  const statusBadge = {
+    approved: 'bg-emerald-50 text-emerald-700',
+    pending: 'bg-amber-50 text-amber-700',
+    rejected: 'bg-rose-50 text-rose-700',
+    cancelled: 'bg-slate-100 text-slate-600'
+  };
+
+  // Reason dialog component
+  const ReasonDialog = () => {
+    if (!reasonDlg.open) return null;
+    return (
+      <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
+        <div className="bg-white rounded-lg p-4 w-full max-w-md">
+          <h4 className="text-lg font-semibold mb-2">
+            {reasonDlg.action === 'approve' ? 'Approve Booking' : 'Reject Booking'}
+          </h4>
+          <textarea
+            className="w-full border rounded p-2 mb-3 text-sm"
+            rows={3}
+            placeholder="Optional reason (visible to resident)"
+            onChange={e => setReasonDlg(r => ({ ...r, reason: e.target.value }))}
+            value={reasonDlg.reason || ''}
+          />
+          <div className="flex justify-end gap-2">
+            <button onClick={closeReason} className="px-3 py-2 rounded border text-sm">Cancel</button>
+            <button
+              onClick={() => confirmReason(reasonDlg.reason || '')}
+              className={`px-3 py-2 rounded text-sm text-white ${reasonDlg.action === 'approve' ? 'bg-emerald-600' : 'bg-rose-600'}`}
+            >
+              {reasonDlg.action === 'approve' ? 'Approve' : 'Reject'}
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  };
 
   return (
     <div className="min-h-screen flex flex-col bg-ng-light">
       <Navbar />
-
       <main className="flex-grow pt-40 pb-16 px-6">
         <div className="max-w-7xl mx-auto">
           {/* Welcome Section */}
@@ -431,9 +528,11 @@ export default function AdminDashboard() {
                 onClick={() => navigate('/facility')}
                 className="p-4 rounded-lg border-2 border-gray-200 hover:border-ng-blue hover:bg-blue-50 transition-all text-center"
               >
-                <svg className="w-8 h-8 mx-auto mb-2 text-ng-blue" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                </svg>
+                <svg className="w-8 h-8 mx-auto mb-2 text-ng-blue" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+  {/* calendar icon */}
+  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+    d="M8 7V3m8 4V3M4 11h16M4 19h16a2 2 0 002-2V7a2 2 0 00-2-2H4a2 2 0 00-2 2v10a2 2 0 002 2z" />
+</svg>
                 <p className="text-sm font-medium text-gray-700">Facility Bookings</p>
               </button>
 
@@ -445,10 +544,166 @@ export default function AdminDashboard() {
               </button>
             </div>
           </div>
+
+          {/* Bookings Management */}
+          <div className="bg-white rounded-xl shadow-lg p-6 mt-6">
+            <div className="flex items-center justify-between mb-6">
+              <h2 
+                className="text-2xl font-normal text-ng-blue"
+                style={{ fontFamily: "'DM Serif Display', serif" }}
+              >
+                Bookings Management
+              </h2>
+              <svg className="w-6 h-6 text-ng-blue" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+              </svg>
+            </div>
+            
+            <div className="space-y-4">
+              {/* Upcoming Bookings (summary) */}
+              <div className="w-full px-4 py-3 rounded-lg bg-blue-50">
+                <div className="flex items-center justify-between mb-3">
+                  <span className="text-ng-blue font-medium">Upcoming Bookings (next 5)</span>
+                </div>
+                <div className="space-y-3 max-h-56 overflow-y-auto">
+                  {upcoming.length === 0 && <p className="text-sm text-gray-600">No upcoming bookings</p>}
+                  {upcoming.map(b => (
+                    <div key={b.id} className="bg-white p-3 rounded-lg shadow-sm text-sm flex justify-between items-start">
+                      <div>
+                        <p className="font-semibold text-gray-900">{b.title}</p>
+                        <p className="text-gray-600">
+                          {facMap[b.facilityId] || b.facilityId} • {new Date(b.start).toLocaleDateString()} {new Date(b.start).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                        </p>
+                      </div>
+                      <span className={`px-2 py-1 text-xs rounded-full ${statusBadge[b.status] || 'bg-slate-100 text-slate-700'}`}>{b.status}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* All Bookings collapsible with full management */}
+              <div className="w-full rounded-lg bg-gray-50">
+                <button
+                  onClick={() => setShowAllBookings(s => !s)}
+                  className="w-full text-left px-4 py-3 hover:bg-gray-100 transition-colors flex items-center justify-between rounded-lg"
+                >
+                  <span className="text-gray-700 font-medium">All Bookings</span>
+                  <svg
+                    className={`w-5 h-5 text-gray-700 transition-transform ${showAllBookings ? 'rotate-90' : ''}`}
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                  </svg>
+                </button>
+
+                {showAllBookings && (
+                  <div className="px-4 pb-4 space-y-4">
+                    {/* Filters + Legend */}
+                    <div className="flex flex-wrap gap-3 items-center">
+                      <select
+                        className="bg-[#07164a] text-white rounded px-3 py-2 text-sm"
+                        value={facilityFilter}
+                        onChange={e => setFacilityFilter(e.target.value)}
+                      >
+                        <option value="all">Facility: All</option>
+                        {facilities.map(f => <option key={f.id} value={f.id}>{f.name}</option>)}
+                      </select>
+                      <select
+                        className="bg-[#07164a] text-white rounded px-3 py-2 text-sm"
+                        value={statusFilter}
+                        onChange={e => setStatusFilter(e.target.value)}
+                      >
+                        <option value="pending">Pending</option>
+                        <option value="approved">Approved</option>
+                        <option value="rejected">Rejected</option>
+                        <option value="cancelled">Cancelled</option>
+                        <option value="all">All Statuses</option>
+                      </select>
+                      <input
+                        type="date"
+                        className="bg-[#07164a] text-white rounded px-3 py-2 text-sm"
+                        value={dateFrom}
+                        onChange={e => setDateFrom(e.target.value)}
+                      />
+                      <input
+                        type="date"
+                        className="bg-[#07164a] text-white rounded px-3 py-2 text-sm"
+                        value={dateTo}
+                        onChange={e => setDateTo(e.target.value)}
+                      />
+                      <div className="ml-auto">
+                        <BookingLegend />
+                      </div>
+                    </div>
+
+                    {bookingsLoading && <div className="text-sm">Loading bookings…</div>}
+                    {bookingsError && <div className="text-sm text-rose-600">{bookingsError}</div>}
+
+                    <div className="overflow-x-auto bg-white rounded-md shadow">
+                      <table className="w-full text-sm">
+                        <thead>
+                          <tr className="text-left bg-slate-50">
+                            <th className="px-4 py-2">Title</th>
+                            <th className="px-4 py-2">Facility</th>
+                            <th className="px-4 py-2">When</th>
+                            <th className="px-4 py-2">Status</th>
+                            <th className="px-4 py-2">Actions</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {bookings.map(b => (
+                            <tr key={b.id} className="border-t">
+                              <td className="px-4 py-2">{b.title}</td>
+                              <td className="px-4 py-2">{facMap[b.facilityId] || b.facilityId}</td>
+                              <td className="px-4 py-2">
+                                {new Date(b.start).toLocaleDateString()}<br />
+                                {new Date(b.start).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} - {new Date(b.end).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                              </td>
+                              <td className="px-4 py-2">
+                                <span className={`px-2 py-0.5 rounded text-xs font-medium ${statusBadge[b.status] || 'bg-blue-50 text-blue-700'}`}>
+                                  {b.status}
+                                </span>
+                                {b.reviewReason && (
+                                  <div className="text-[10px] text-gray-500 mt-0.5 truncate max-w-[120px]">
+                                    {b.reviewReason}
+                                  </div>
+                                )}
+                              </td>
+                              <td className="px-4 py-2">
+                                <div className="flex gap-2">
+                                  <button
+                                    onClick={() => openReason(b.id, 'approve')}
+                                    disabled={b.status !== 'pending'}
+                                    className="text-xs px-3 py-1 rounded bg-emerald-600 text-white disabled:opacity-40"
+                                  >Approve</button>
+                                  <button
+                                    onClick={() => openReason(b.id, 'reject')}
+                                    disabled={b.status !== 'pending'}
+                                    className="text-xs px-3 py-1 rounded bg-rose-600 text-white disabled:opacity-40"
+                                  >Reject</button>
+                                </div>
+                              </td>
+                            </tr>
+                          ))}
+                          {bookings.length === 0 && !bookingsLoading && (
+                            <tr>
+                              <td colSpan={5} className="px-4 py-6 text-center text-gray-500">No bookings found.</td>
+                            </tr>
+                          )}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
         </div>
       </main>
-
       <Footer />
+      <ReasonDialog />
     </div>
   );
 }

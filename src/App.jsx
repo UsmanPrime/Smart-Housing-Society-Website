@@ -13,6 +13,8 @@ import VendorDashboard from './pages/dashboard/VendorDashboard'
 import Announcements from './pages/Announcements'
 import Profile from './pages/Profile'
 import ForgotPassword from './pages/ForgotPassword'
+import VendorComplaintsPage from './pages/VendorComplaints'
+import FacilityPage from './pages/Facility'
 
 export default function App() {
   return (
@@ -60,6 +62,8 @@ export default function App() {
           </ProtectedRoute>
         } 
       />
+      <Route path="/vendor/complaints" element={<VendorComplaintsPage />} />
+      <Route path="/facilities" element={<FacilityPage />} />
     </Routes>
   )
 }

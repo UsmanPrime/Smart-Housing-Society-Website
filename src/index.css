@@ -1,0 +1,4 @@
+/* ...existing code... */
+.use-hero-heading-font {
+  font-family: var(--hero-heading-font, inherit) !important;
+}
