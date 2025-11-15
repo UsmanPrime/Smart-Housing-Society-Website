@@ -38,10 +38,16 @@ const toISO = (dateStr, timeStr) => new Date(`${dateStr}T${timeStr}:00`).toISOSt
 const overlaps = (aStart, aEnd, bStart, bEnd) => (new Date(aStart) < new Date(bEnd) && new Date(bStart) < new Date(aEnd))
 
 export function useBookingsStore() {
-  const [facilities, setFacilities] = useState([])
+  // initialize from local storage/defaults so the dropdown has data immediately
+  const [facilities, setFacilities] = useState(loadFacilitiesWithMigration())
   const [bookings, setBookings] = useState([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)
+
+  // persist any facility updates
+  useEffect(() => {
+    if (facilities?.length) writeJSON(LS_FAC, facilities)
+  }, [facilities])
 
   const refresh = useCallback(async (filters = {}) => {
     try {
@@ -50,9 +56,11 @@ export function useBookingsStore() {
         facilities.length ? Promise.resolve(facilities) : bookingsApi.listFacilities(),
         bookingsApi.listBookings(filters)
       ])
-      if (!facilities.length) setFacilities(facRes)
+      if (!facilities.length && Array.isArray(facRes) && facRes.length) setFacilities(facRes)
       setBookings(bkRes)
     } catch (e) {
+      // fall back to local/default facilities so the dropdown still works
+      if (!facilities.length) setFacilities(loadFacilitiesWithMigration())
       setError('Failed to load bookings. Ensure API is running on :5000.')
     } finally { setLoading(false) }
   }, [facilities])
