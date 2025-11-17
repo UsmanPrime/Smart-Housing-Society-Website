@@ -11,6 +11,12 @@ const userSchema = new mongoose.Schema(
     // Password reset (OTP) fields
     resetOtpHash: { type: String },
     resetOtpExpires: { type: Date },
+    // Vendor-specific fields
+    specialization: [{ 
+      type: String, 
+      enum: ['plumbing', 'electrical', 'cleaning', 'maintenance', 'security', 'other']
+    }],
+    isAvailable: { type: Boolean, default: true },
   },
   { timestamps: true }
 );

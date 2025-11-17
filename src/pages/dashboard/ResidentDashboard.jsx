@@ -12,7 +12,7 @@ export default function ResidentDashboard() {
   const [selectedBooking, setSelectedBooking] = useState(null);
   const navigate = useNavigate();
 
-  const { listMyBookings, listFacilities, refresh, loading, error } = useBookingsStore();
+  const { listMyBookings, listFacilities, fetchBookings, loading, error } = useBookingsStore();
 
   useEffect(() => {
     const userStr = localStorage.getItem('user');
@@ -33,14 +33,14 @@ export default function ResidentDashboard() {
     loadFonts();
   }, []);
 
-  useEffect(() => { refresh(); }, [refresh]);
+  useEffect(() => { fetchBookings(); }, [fetchBookings]);
 
   const myBookings = listMyBookings(user?.id || 'resident1');
-  const facMap = Object.fromEntries(listFacilities().map(f => [f.id, f.name]));
+  const facMap = Object.fromEntries(listFacilities().map(f => [f._id || f.id, f.name]));
 
   const now = Date.now();
   const activeCount = myBookings.filter(
-    b => !['cancelled','rejected'].includes(b.status) && new Date(b.end).getTime() >= now
+    b => !['cancelled','rejected'].includes(b.status) && new Date(b.endTime || b.end).getTime() >= now
   ).length;
 
   const statusColor =
@@ -145,11 +145,11 @@ export default function ResidentDashboard() {
                 {error && <div className="text-sm text-rose-600">{error}</div>}
                 <ul className="space-y-2">
                   {myBookings.map(b => (
-                    <li key={b.id} className="rounded-md px-4 py-3 flex flex-col md:flex-row md:items-center md:justify-between gap-2 border">
+                    <li key={b._id || b.id} className="rounded-md px-4 py-3 flex flex-col md:flex-row md:items-center md:justify-between gap-2 border">
                       <div>
-                        <div className="font-medium">{b.title}</div>
+                        <div className="font-medium">{b.purpose || b.title || 'Booking'}</div>
                         <div className="text-xs text-gray-600">
-                          {facMap[b.facilityId]} • {new Date(b.start).toLocaleDateString()} {new Date(b.start).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} - {new Date(b.end).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                          {facMap[b.facilityId?._id || b.facilityId] || b.facilityId?.name || 'Unknown'} • {new Date(b.startTime || b.start).toLocaleDateString()} {new Date(b.startTime || b.start).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} - {new Date(b.endTime || b.end).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                         </div>
                       </div>
                       <div className="flex items-center gap-3">

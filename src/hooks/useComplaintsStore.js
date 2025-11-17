@@ -1,72 +1,149 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useState } from 'react'
 
-const LS_KEY = 'complaints_local'
+const API_BASE = '/api'
 
-const readLS = () => {
-  try {
-    const raw = localStorage.getItem(LS_KEY)
-    if (raw) return JSON.parse(raw)
-  } catch {}
-  return []
+// Helper function to get auth token from localStorage
+const getAuthToken = () => {
+  const token = localStorage.getItem('token')
+  return token
 }
 
-const writeLS = (items) => {
-  try { localStorage.setItem(LS_KEY, JSON.stringify(items)) } catch {}
+// Helper function to make authenticated API requests
+const apiRequest = async (endpoint, options = {}) => {
+  const token = getAuthToken()
+  const headers = {
+    'Content-Type': 'application/json',
+    ...(token && { 'Authorization': `Bearer ${token}` }),
+    ...options.headers,
+  }
+
+  const response = await fetch(`${API_BASE}${endpoint}`, {
+    ...options,
+    headers,
+  })
+
+  const data = await response.json()
+
+  if (!response.ok) {
+    throw new Error(data.message || 'API request failed')
+  }
+
+  return data
 }
 
 export function useComplaintsStore() {
-  const [items, setItems] = useState(readLS())
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState(null)
 
-  useEffect(() => { writeLS(items) }, [items])
-
-  const addComplaint = useCallback((c) => {
-    const newItem = {
-      ...c,
-      id: Date.now(),
-      createdAt: new Date().toISOString(),
-      status: 'open',
-      comments: [],
-      _local: true,
+  const addComplaint = useCallback(async (complaintData) => {
+    setLoading(true)
+    setError(null)
+    try {
+      const result = await apiRequest('/complaints', {
+        method: 'POST',
+        body: JSON.stringify(complaintData),
+      })
+      setLoading(false)
+      return { success: true, data: result.data }
+    } catch (err) {
+      setError(err.message)
+      setLoading(false)
+      return { success: false, error: err.message }
     }
-    setItems(prev => [newItem, ...prev])
   }, [])
 
-  const updateComplaint = useCallback((id, patch) => {
-    setItems(prev => prev.map(c => (c.id === id ? { ...c, ...patch } : c)))
+  const updateComplaint = useCallback(async (id, updateData) => {
+    setLoading(true)
+    setError(null)
+    try {
+      const result = await apiRequest(`/complaints/${id}`, {
+        method: 'PUT',
+        body: JSON.stringify(updateData),
+      })
+      setLoading(false)
+      return { success: true, data: result.data }
+    } catch (err) {
+      setError(err.message)
+      setLoading(false)
+      return { success: false, error: err.message }
+    }
   }, [])
 
-  const addComment = useCallback((id, text, authorName) => {
-    const cm = { id: Date.now(), text, authorName, createdAt: new Date().toISOString(), _pending: true }
-    setItems(prev => prev.map(c => (c.id === id ? { ...c, comments: [...c.comments, cm] } : c)))
-    // simulate pending clear
-    setTimeout(() => {
-      setItems(prev => prev.map(c => (c.id === id
-        ? { ...c, comments: c.comments.map(x => x.id === cm.id ? { ...x, _pending: false } : x) }
-        : c)))
-    }, 300)
+  const addComment = useCallback(async (id, text) => {
+    setLoading(true)
+    setError(null)
+    try {
+      const result = await apiRequest(`/complaints/${id}/comments`, {
+        method: 'POST',
+        body: JSON.stringify({ text }),
+      })
+      setLoading(false)
+      return { success: true, data: result.data }
+    } catch (err) {
+      setError(err.message)
+      setLoading(false)
+      return { success: false, error: err.message }
+    }
   }, [])
 
-  const updateStatus = useCallback((id, status) => {
-    // optimistic with pending state
-    setItems(prev => prev.map(c => (c.id === id ? { ...c, _pendingStatus: true } : c)))
-    setItems(prev => prev.map(c => (c.id === id ? { ...c, status } : c)))
-    setTimeout(() => setItems(prev => prev.map(c => (c.id === id ? { ...c, _pendingStatus: false } : c))), 300)
+  const updateStatus = useCallback(async (id, status) => {
+    setLoading(true)
+    setError(null)
+    try {
+      const result = await apiRequest(`/complaints/${id}`, {
+        method: 'PUT',
+        body: JSON.stringify({ status }),
+      })
+      setLoading(false)
+      return { success: true, data: result.data }
+    } catch (err) {
+      setError(err.message)
+      setLoading(false)
+      return { success: false, error: err.message }
+    }
   }, [])
 
-  const assignVendor = useCallback((id, vendorId) => {
-    setItems(prev => prev.map(c => (c.id === id ? { ...c, assignedTo: vendorId || undefined } : c)))
+  const assignVendor = useCallback(async (id, vendorId) => {
+    setLoading(true)
+    setError(null)
+    try {
+      const result = await apiRequest(`/complaints/${id}/assign`, {
+        method: 'PUT',
+        body: JSON.stringify({ vendorId }),
+      })
+      setLoading(false)
+      return { success: true, data: result.data }
+    } catch (err) {
+      setError(err.message)
+      setLoading(false)
+      return { success: false, error: err.message }
+    }
   }, [])
 
-  const addVendorNote = useCallback((id, text, authorName) => {
-    const cm = { id: Date.now(), text, authorName, createdAt: new Date().toISOString(), type: 'vendor_note', _pending: true }
-    setItems(prev => prev.map(c => c.id === id ? { ...c, comments: [...c.comments, cm] } : c))
-    setTimeout(() => {
-      setItems(prev => prev.map(c => c.id === id ? {
-        ...c,
-        comments: c.comments.map(x => x.id === cm.id ? { ...x, _pending: false } : x)
-      } : c))
-    }, 300)
+  const deleteComplaint = useCallback(async (id) => {
+    setLoading(true)
+    setError(null)
+    try {
+      const result = await apiRequest(`/complaints/${id}`, {
+        method: 'DELETE',
+      })
+      setLoading(false)
+      return { success: true, data: result }
+    } catch (err) {
+      setError(err.message)
+      setLoading(false)
+      return { success: false, error: err.message }
+    }
   }, [])
 
-  return { items, addComplaint, updateComplaint, addComment, updateStatus, assignVendor, addVendorNote }
+  return { 
+    addComplaint, 
+    updateComplaint, 
+    addComment, 
+    updateStatus, 
+    assignVendor,
+    deleteComplaint,
+    loading, 
+    error 
+  }
 }

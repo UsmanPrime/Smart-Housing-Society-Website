@@ -12,13 +12,13 @@ const statusColor = (s) =>
 
 export default function ResidentBookingsList() {
   const { user } = useAuth()
-  const { listMyBookings, refresh, listFacilities, loading, error } = useBookingsStore()
+  const { listMyBookings, fetchBookings, listFacilities, loading, error } = useBookingsStore()
   const [selected, setSelected] = useState(null)
 
-  useEffect(() => { refresh() }, [refresh])
+  useEffect(() => { fetchBookings() }, [fetchBookings])
 
   const myBookings = listMyBookings(user?.id || 'resident1')
-  const facMap = Object.fromEntries(listFacilities().map(f => [f.id, f.name]))
+  const facMap = Object.fromEntries(listFacilities().map(f => [f._id, f.name]))
 
   const now = Date.now()
   const activeCount = myBookings.filter(

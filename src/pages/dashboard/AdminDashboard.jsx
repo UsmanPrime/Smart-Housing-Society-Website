@@ -22,6 +22,7 @@ export default function AdminDashboard() {
   const [dateFrom, setDateFrom] = useState('');
   const [dateTo, setDateTo] = useState('');
   const [reasonDlg, setReasonDlg] = useState({ open: false, id: null, action: 'approve' });
+  const [activeComplaints, setActiveComplaints] = useState(0);
   const navigate = useNavigate();
 
   const {
@@ -58,6 +59,30 @@ export default function AdminDashboard() {
     fetchPendingUsers();
     fetchAllUsers('resident');
     fetchAllUsers('vendor');
+    fetchActiveComplaintsCount();
+  }, []);
+  const fetchActiveComplaintsCount = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      const headers = { Authorization: `Bearer ${token}` };
+      const [openRes, inProgRes] = await Promise.all([
+        axios.get('/api/complaints?status=open&limit=1', { headers }),
+        axios.get('/api/complaints?status=in-progress&limit=1', { headers })
+      ]);
+      const openTotal = openRes.data?.pagination?.total || 0;
+      const inProgTotal = inProgRes.data?.pagination?.total || 0;
+      setActiveComplaints(openTotal + inProgTotal);
+    } catch (e) {
+      console.warn('Failed to fetch active complaints count:', e?.message || e);
+    }
+  };
+
+  // Auto-refresh active complaints count every 20 seconds
+  useEffect(() => {
+    const interval = setInterval(() => {
+      fetchActiveComplaintsCount();
+    }, 20000);
+    return () => clearInterval(interval);
   }, []);
 
   const fetchPendingUsers = async () => {
@@ -276,7 +301,7 @@ export default function AdminDashboard() {
               <div className="flex items-center justify-between mb-4">
                 <div>
                   <p className="text-gray-600 text-sm mb-1">Active Complaints</p>
-                  <div className="text-3xl font-bold text-red-600">0</div>
+                  <div className="text-3xl font-bold text-red-600">{activeComplaints}</div>
                 </div>
                 <div className="bg-red-100 p-3 rounded-lg">
                   <svg className="w-8 h-8 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">

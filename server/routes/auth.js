@@ -25,7 +25,7 @@ router.post(
       return res.status(400).json({ success: false, errors: errors.array() });
     }
 
-    const { name, email, password, phone, role = 'resident' } = req.body;
+    const { name, email, password, phone, role = 'resident', specialization } = req.body;
 
     try {
       const existing = await User.findOne({ email: email.toLowerCase() });
@@ -34,7 +34,12 @@ router.post(
       }
 
       const passwordHash = await bcrypt.hash(password, 10);
-      const user = await User.create({ name, email: email.toLowerCase(), passwordHash, phone, role });
+      let userData = { name, email: email.toLowerCase(), passwordHash, phone, role };
+      // Only allow specialization for vendors
+      if (role === 'vendor' && Array.isArray(specialization)) {
+        userData.specialization = specialization;
+      }
+      const user = await User.create(userData);
 
       // Send registration pending email (best-effort)
       try {

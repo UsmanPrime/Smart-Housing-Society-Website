@@ -13,12 +13,37 @@ export default function Register() {
   const [password, setPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
   const [phone, setPhone] = useState('')
+  const [specialization, setSpecialization] = useState([])
+  const [specOpen, setSpecOpen] = useState(false)
   const [mounted, setMounted] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
   const [isRobotChecked, setIsRobotChecked] = useState(false)
   const navigate = useNavigate()
+
+  const SPECIALIZATION_OPTIONS = [
+    { value: 'plumbing', label: 'Plumbing' },
+    { value: 'electrical', label: 'Electrical' },
+    { value: 'cleaning', label: 'Cleaning' },
+    { value: 'maintenance', label: 'Maintenance' },
+    { value: 'security', label: 'Security' },
+    { value: 'other', label: 'Other' },
+  ]
+
+  const toggleSpecialization = (val) => {
+    setSpecialization((prev) =>
+      prev.includes(val) ? prev.filter((v) => v !== val) : [...prev, val]
+    )
+  }
+
+  const selectAllSpecs = () => {
+    setSpecialization(SPECIALIZATION_OPTIONS.map((o) => o.value))
+  }
+
+  const clearAllSpecs = () => {
+    setSpecialization([])
+  }
 
   useEffect(() => {
     const loadFonts = async () => {
@@ -54,13 +79,17 @@ export default function Register() {
     try {
       const API_BASE = (import.meta?.env?.VITE_API_BASE_URL || '').trim()
       const url = `${API_BASE}/api/auth/register`
-      const res = await axios.post(url, {
+      const payload = {
         name,
         email,
         password,
         phone,
         role: userType,
-      })
+      };
+      if (userType === 'vendor') {
+        payload.specialization = specialization;
+      }
+      const res = await axios.post(url, payload)
 
       if (res.data?.success) {
         setSuccess(res.data?.message || 'Registration successful! Please wait for admin approval.')
@@ -130,6 +159,7 @@ export default function Register() {
             </div>
 
             <form className="space-y-8" onSubmit={handleSubmit}>
+
               {/* User type */}
               <div>
                 <label className="block text-lg font-medium text-white/90 mb-3" style={{ fontFamily: 'Poppins, sans-serif' }}>
@@ -145,6 +175,71 @@ export default function Register() {
                   <option value="vendor">Vendor</option>
                 </select>
               </div>
+
+              {/* Specialization for vendor only */}
+              {userType === 'vendor' && (
+                <div>
+                  <label className="block text-lg font-medium text-white/90 mb-3" style={{ fontFamily: 'Poppins, sans-serif' }}>
+                    Specialization (select one or more)
+                  </label>
+                  <div className="relative">
+                    <button
+                      type="button"
+                      onClick={() => setSpecOpen((o) => !o)}
+                      className="w-full px-6 py-4 rounded-xl text-white text-left text-lg bg-[#0b1a4a] border border-white/10 focus:outline-none focus:ring-2 focus:ring-white/30"
+                      aria-haspopup="listbox"
+                      aria-expanded={specOpen ? 'true' : 'false'}
+                    >
+                      {specialization.length === 0 && (
+                        <span className="text-white/70">Select specializations</span>
+                      )}
+                      {specialization.length > 0 && (
+                        <div className="flex flex-wrap gap-2">
+                          {specialization.map((val) => {
+                            const opt = SPECIALIZATION_OPTIONS.find((o) => o.value === val)
+                            return (
+                              <span key={val} className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/10 text-white/90 text-sm">
+                                {opt?.label || val}
+                              </span>
+                            )
+                          })}
+                        </div>
+                      )}
+                    </button>
+
+                    {specOpen && (
+                      <div className="absolute z-20 mt-2 w-full rounded-xl bg-[#0b1a4a] border border-white/10 shadow-lg">
+                        <div className="max-h-52 overflow-y-auto py-2">
+                          {SPECIALIZATION_OPTIONS.map((opt) => (
+                            <label
+                              key={opt.value}
+                              className="flex items-center gap-3 px-4 py-3 hover:bg-white/5 cursor-pointer select-none"
+                            >
+                              <input
+                                type="checkbox"
+                                className="w-4 h-4 cursor-pointer"
+                                checked={specialization.includes(opt.value)}
+                                onChange={() => toggleSpecialization(opt.value)}
+                              />
+                              <span className="text-white/90 capitalize">{opt.label}</span>
+                            </label>
+                          ))}
+                        </div>
+                        <div className="flex items-center justify-between gap-2 px-3 py-2 border-t border-white/10 bg-[#0b1a4a]">
+                          <div className="flex gap-2">
+                            <button type="button" onClick={selectAllSpecs} className="text-sm text-white/90 hover:underline">Select all</button>
+                            <button type="button" onClick={clearAllSpecs} className="text-sm text-white/80 hover:underline">Clear</button>
+                          </div>
+                          <button type="button" onClick={() => setSpecOpen(false)} className="text-sm bg-white/10 hover:bg-white/20 text-white px-3 py-1 rounded-md">Done</button>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                  <p className="text-xs text-white/70 mt-2">You can choose multiple options.</p>
+                </div>
+              )}
+
+              
 
               {/* Name */}
               <div>

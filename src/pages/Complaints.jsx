@@ -6,12 +6,30 @@ import complaintHouse from '../assets/complaintHOUSE.jpg';
 import ComplaintForm from '../components/complaints/ComplaintForm';
 import ComplaintList from '../components/complaints/ComplaintList';
 import ComplaintDetailModal from '../components/complaints/ComplaintDetailModal';
+import useAuth from '../hooks/useAuth';
 
 export default function Page() {
+  const { user } = useAuth();
   const [visibleSections, setVisibleSections] = useState({});
   const sectionRefs = useRef({});
   const [activeTab, setActiveTab] = useState('my'); // my | all | assigned
   const [selected, setSelected] = useState(null);
+  const [refreshTrigger, setRefreshTrigger] = useState(0);
+
+  const isAdmin = user?.role === 'admin';
+  const isVendor = user?.role === 'vendor';
+  const isResident = user?.role === 'resident';
+
+  // Set initial tab based on role
+  useEffect(() => {
+    if (isAdmin) {
+      setActiveTab('all');
+    } else if (isVendor) {
+      setActiveTab('assigned');
+    } else {
+      setActiveTab('my');
+    }
+  }, [isAdmin, isVendor]);
 
   useEffect(() => {
     const observer = new IntersectionObserver(
@@ -30,6 +48,40 @@ export default function Page() {
   }, []);
 
   const setRef = (key, el) => { sectionRefs.current[key] = el };
+
+  const handleFormSuccess = () => {
+    setRefreshTrigger(prev => prev + 1);
+  };
+
+  const handleComplaintUpdate = () => {
+    setRefreshTrigger(prev => prev + 1);
+  };
+
+  // Auto-refresh every 15 seconds for live updates
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setRefreshTrigger(prev => prev + 1);
+    }, 15000);
+    return () => clearInterval(interval);
+  }, []);
+
+  // Define available tabs based on role
+  const availableTabs = [];
+  if (isAdmin) {
+    availableTabs.push(
+      { key: 'all', label: 'All Complaints' },
+      { key: 'my', label: 'My Complaints' },
+      { key: 'assigned', label: 'Assigned' }
+    );
+  } else if (isVendor) {
+    availableTabs.push(
+      { key: 'assigned', label: 'Assigned to Me' }
+    );
+  } else {
+    availableTabs.push(
+      { key: 'my', label: 'My Complaints' }
+    );
+  }
 
   return (
     <div className="min-h-screen">
@@ -65,34 +117,38 @@ export default function Page() {
       <main className="bg-[#c3c5ce] py-12">
         <div className="max-w-6xl mx-auto px-6">
           {/* Tabs */}
-          <div className="flex gap-2 mb-6">
-            {[
-              { key: 'my', label: 'My' },
-              { key: 'all', label: 'All' },
-              { key: 'assigned', label: 'Assigned' },
-            ].map(t => (
-              <button
-                key={t.key}
-                onClick={() => setActiveTab(t.key)}
-                className={`px-4 py-2 rounded-md text-sm font-medium transition-colors
-                  ${activeTab === t.key ? 'bg-[#07164a] text-white' : 'bg-white text-[#07164a] hover:bg-slate-100'}`}
-              >
-                {t.label}
-              </button>
-            ))}
-          </div>
+          {availableTabs.length > 1 && (
+            <div className="flex gap-2 mb-6">
+              {availableTabs.map(t => (
+                <button
+                  key={t.key}
+                  onClick={() => setActiveTab(t.key)}
+                  className={`px-4 py-2 rounded-md text-sm font-medium transition-colors
+                    ${activeTab === t.key ? 'bg-[#07164a] text-white' : 'bg-white text-[#07164a] hover:bg-slate-100'}`}
+                >
+                  {t.label}
+                </button>
+              ))}
+            </div>
+          )}
 
-          {/* Two columns: form + list */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-10">
-            <section>
-              <h2 className="text-xl font-semibold mb-2">Submit a Complaint / Service Request</h2>
-              <p className="text-sm text-gray-700 mb-6">Please fill out the form below</p>
-              <ComplaintForm />
-            </section>
+          {/* Two columns: form + list (hide form for vendors) */}
+          <div className={`grid grid-cols-1 ${isVendor ? 'lg:grid-cols-1' : 'lg:grid-cols-2'} gap-10`}>
+            {isResident && (
+              <section>
+                <h2 className="text-xl font-semibold mb-2">Submit a Complaint / Service Request</h2>
+                <p className="text-sm text-gray-700 mb-6">Please fill out the form below</p>
+                <ComplaintForm onSuccess={handleFormSuccess} />
+              </section>
+            )}
 
             <section>
-              <h2 className="text-xl font-semibold mb-4">Complaints</h2>
-              <ComplaintList tab={activeTab} onOpen={(c) => setSelected(c)} />
+              <h2 className="text-xl font-semibold mb-4">
+                {activeTab === 'all' && 'All Complaints'}
+                {activeTab === 'my' && 'My Complaints'}
+                {activeTab === 'assigned' && 'Assigned Complaints'}
+              </h2>
+              <ComplaintList tab={activeTab} onOpen={(c) => setSelected(c)} refreshTrigger={refreshTrigger} />
             </section>
           </div>
         </div>
@@ -100,7 +156,13 @@ export default function Page() {
 
       <Footer />
 
-      {selected && <ComplaintDetailModal complaint={selected} onClose={() => setSelected(null)} />}
+      {selected && (
+        <ComplaintDetailModal 
+          complaint={selected} 
+          onClose={() => setSelected(null)} 
+          onUpdate={handleComplaintUpdate}
+        />
+      )}
     </div>
   );
 }

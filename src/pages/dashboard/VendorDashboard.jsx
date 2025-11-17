@@ -3,10 +3,14 @@ import { useNavigate } from 'react-router-dom';
 import Navbar from '../../components/Navbar';
 import Footer from '../../components/Footer';
 import AnnouncementsList from '../../components/AnnouncementsList';
+import { api } from '../../lib/api';
+import useAuth from '../../hooks/useAuth';
 
 export default function VendorDashboard() {
   const [user, setUser] = useState(null);
+  const [stats, setStats] = useState({ total: 0, open: 0, inProgress: 0, resolved: 0, closed: 0 });
   const navigate = useNavigate();
+  const auth = useAuth();
 
   useEffect(() => {
     const userStr = localStorage.getItem('user');
@@ -27,6 +31,23 @@ export default function VendorDashboard() {
       ]);
     };
     loadFonts();
+    // Fetch vendor stats
+    const fetchStats = async () => {
+      try {
+        const token = auth?.token || localStorage.getItem('token') || undefined;
+        const data = await api.get('/api/vendors/stats', { token });
+        if (data?.data) setStats(data.data);
+      } catch (e) {
+        console.warn('Failed to fetch vendor stats:', e?.message || e);
+      }
+    };
+    fetchStats();
+
+    // Auto-refresh stats every 20 seconds
+    const interval = setInterval(() => {
+      fetchStats();
+    }, 20000);
+    return () => clearInterval(interval);
   }, []);
 
   return (
@@ -55,7 +76,7 @@ export default function VendorDashboard() {
               <div className="flex items-center justify-between mb-4">
                 <div>
                   <p className="text-gray-600 text-sm mb-1">Active Services</p>
-                  <div className="text-3xl font-bold text-ng-blue">0</div>
+                  <div className="text-3xl font-bold text-ng-blue">{stats.inProgress || 0}</div>
                 </div>
                 <div className="bg-ng-blue/10 p-3 rounded-lg">
                   <svg className="w-8 h-8 text-ng-blue" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -71,7 +92,7 @@ export default function VendorDashboard() {
               <div className="flex items-center justify-between mb-4">
                 <div>
                   <p className="text-gray-600 text-sm mb-1">Pending Requests</p>
-                  <div className="text-3xl font-bold text-orange-600">0</div>
+                  <div className="text-3xl font-bold text-orange-600">{stats.open || 0}</div>
                 </div>
                 <div className="bg-orange-100 p-3 rounded-lg">
                   <svg className="w-8 h-8 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -87,7 +108,7 @@ export default function VendorDashboard() {
               <div className="flex items-center justify-between mb-4">
                 <div>
                   <p className="text-gray-600 text-sm mb-1">Completed Jobs</p>
-                  <div className="text-3xl font-bold text-green-600">0</div>
+                  <div className="text-3xl font-bold text-green-600">{(stats.resolved || 0) + (stats.closed || 0)}</div>
                 </div>
                 <div className="bg-green-100 p-3 rounded-lg">
                   <svg className="w-8 h-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
