@@ -1,6 +1,16 @@
-# 🏠 Smart Housing Society - Full Stack Application
+# 🏠 NextGen Residency
 
-A comprehensive housing society management system built with React, Node.js, Express, and MongoDB.
+NextGen Residency is a centralized web platform designed to digitize and streamline the operational workflow of modern housing societies. Built by Team RDX, this solution replaces inefficient manual processes with a unified, transparent, and automated system.
+
+The platform features a robust Triple-Portal Architecture:
+
+👤 Resident Portal: For seamless complaint registration, facility booking, and payment receipt uploads.
+
+🛡️ Administrator Portal: For managing users, verifying financial records, and broadcasting announcements.
+
+🛠️ Vendor Portal: For receiving tasks, updating work status, and ensuring service accountability.
+
+Built With: MongoDB, Express.js, React.js, Node.js (MERN Stack).
 
 ## 🚀 Features
 
