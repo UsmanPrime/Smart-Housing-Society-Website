@@ -154,11 +154,14 @@ router.get('/', authenticateToken, async (req, res) => {
       filter.userId = userId;
     }
     
-    // Date range filter
-    if (startDate || endDate) {
+    // Date range filter (defensive against "undefined"/invalid values)
+    const isValidDateStr = (s) => typeof s === 'string' && s.trim() !== '' && s !== 'undefined' && s !== 'null' && !isNaN(new Date(s).getTime());
+    const hasStart = isValidDateStr(startDate);
+    const hasEnd = isValidDateStr(endDate);
+    if (hasStart || hasEnd) {
       filter.startTime = {};
-      if (startDate) filter.startTime.$gte = new Date(startDate);
-      if (endDate) filter.startTime.$lte = new Date(endDate);
+      if (hasStart) filter.startTime.$gte = new Date(startDate);
+      if (hasEnd) filter.startTime.$lte = new Date(endDate);
     }
     
     const bookings = await Booking.find(filter)

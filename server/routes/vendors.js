@@ -165,6 +165,9 @@ router.get('/stats', auth, requireRole('vendor'), async (req, res) => {
     // Recent activity summary
     const recentActivity = `You have ${open} open tasks, ${inProgress} in progress, and completed ${completedToday} today.`;
 
+    // Fetch vendor profile for service category and ratings
+    const vendor = await User.findById(vendorId).select('serviceCategory specialization ratingAverage ratingCount services');
+
     res.json({
       success: true,
       data: {
@@ -179,7 +182,12 @@ router.get('/stats', auth, requireRole('vendor'), async (req, res) => {
         completionRate: total > 0 ? Math.round((resolved / total) * 100) : 0,
         byCategory,
         byPriority,
-        recentActivity
+        recentActivity,
+        serviceCategory: vendor?.serviceCategory || null,
+        specialization: vendor?.specialization || [],
+        ratingAverage: vendor?.ratingAverage || 0,
+        ratingCount: vendor?.ratingCount || 0,
+        services: vendor?.services || []
       }
     });
   } catch (error) {
@@ -226,3 +234,159 @@ router.put('/availability', auth, requireRole('vendor'), async (req, res) => {
 });
 
 export default router;
+
+// PUT /api/vendors/profile - update vendor specific profile fields
+router.put('/profile', auth, requireRole('vendor'), async (req, res) => {
+  try {
+    const { serviceCategory, specialization } = req.body;
+    const vendor = await User.findById(req.user.id);
+    if (!vendor) {
+      return res.status(404).json({ success: false, message: 'Vendor not found' });
+    }
+    if (serviceCategory !== undefined) vendor.serviceCategory = serviceCategory;
+    if (specialization !== undefined) vendor.specialization = Array.isArray(specialization) ? specialization : [specialization];
+    await vendor.save();
+    res.json({ success: true, message: 'Profile updated', data: {
+      serviceCategory: vendor.serviceCategory,
+      specialization: vendor.specialization
+    }});
+  } catch (error) {
+    console.error('Error updating vendor profile:', error);
+    res.status(500).json({ success: false, message: 'Error updating vendor profile', error: error.message });
+  }
+});
+
+// POST /api/vendors/:vendorId/rate - resident rates vendor for completed complaint
+router.post('/:vendorId/rate', auth, requireRole('resident'), async (req, res) => {
+  try {
+    const { vendorId } = req.params;
+    const { complaintId, stars, comment } = req.body;
+    if (!complaintId || !stars) {
+      return res.status(400).json({ success: false, message: 'complaintId and stars are required' });
+    }
+    if (stars < 1 || stars > 5) {
+      return res.status(400).json({ success: false, message: 'Stars must be between 1 and 5' });
+    }
+    const vendor = await User.findById(vendorId);
+    if (!vendor || vendor.role !== 'vendor') {
+      return res.status(404).json({ success: false, message: 'Vendor not found' });
+    }
+    const complaint = await Complaint.findById(complaintId);
+    if (!complaint) {
+      return res.status(404).json({ success: false, message: 'Complaint not found' });
+    }
+    if (complaint.submittedBy.toString() !== req.user.id) {
+      return res.status(403).json({ success: false, message: 'You can only rate complaints you submitted' });
+    }
+    if (!complaint.assignedTo || complaint.assignedTo.toString() !== vendorId) {
+      return res.status(400).json({ success: false, message: 'Vendor was not assigned to this complaint' });
+    }
+    if (!['completed', 'resolved', 'closed'].includes(complaint.status)) {
+      return res.status(400).json({ success: false, message: 'Complaint must be completed/resolved/closed before rating' });
+    }
+    // Prevent duplicate rating for same complaint by same user
+    const alreadyRated = vendor.ratings?.some(r => r.complaintId.toString() === complaintId && r.residentId.toString() === req.user.id);
+    if (alreadyRated) {
+      return res.status(400).json({ success: false, message: 'You have already rated this complaint' });
+    }
+    vendor.ratings.push({ residentId: req.user.id, complaintId, stars, comment });
+    vendor.addRating(stars);
+    await vendor.save();
+    res.status(201).json({ success: true, message: 'Rating submitted', data: {
+      ratingAverage: vendor.ratingAverage,
+      ratingCount: vendor.ratingCount
+    }});
+  } catch (error) {
+    console.error('Error submitting rating:', error);
+    res.status(500).json({ success: false, message: 'Error submitting rating', error: error.message });
+  }
+});
+
+// GET /api/vendors/:vendorId/ratings - list ratings (vendor can view own; admin can view all)
+router.get('/:vendorId/ratings', auth, async (req, res) => {
+  try {
+    const { vendorId } = req.params;
+    const vendor = await User.findById(vendorId).select('ratings ratingAverage ratingCount role');
+    if (!vendor || vendor.role !== 'vendor') {
+      return res.status(404).json({ success: false, message: 'Vendor not found' });
+    }
+    const isOwner = vendorId === req.user.id;
+    const isAdmin = req.user.role === 'admin';
+    if (!isOwner && !isAdmin) {
+      return res.status(403).json({ success: false, message: 'Access denied' });
+    }
+    res.json({ success: true, data: {
+      ratingAverage: vendor.ratingAverage,
+      ratingCount: vendor.ratingCount,
+      ratings: vendor.ratings
+    }});
+  } catch (error) {
+    console.error('Error fetching ratings:', error);
+    res.status(500).json({ success: false, message: 'Error fetching ratings', error: error.message });
+  }
+});
+
+// POST /api/vendors/services - add a service (vendor only)
+router.post('/services', auth, requireRole('vendor'), async (req, res) => {
+  try {
+    const { name, description } = req.body;
+    if (!name) return res.status(400).json({ success: false, message: 'Service name is required' });
+    const vendor = await User.findById(req.user.id).select('services');
+    vendor.services.push({ name, description });
+    await vendor.save();
+    res.status(201).json({ success: true, message: 'Service added', data: vendor.services });
+  } catch (error) {
+    console.error('Error adding service:', error);
+    res.status(500).json({ success: false, message: 'Error adding service', error: error.message });
+  }
+});
+
+// GET /api/vendors/services - list own services (vendor only)
+router.get('/services', auth, requireRole('vendor'), async (req, res) => {
+  try {
+    const vendor = await User.findById(req.user.id).select('services');
+    res.json({ success: true, data: vendor.services });
+  } catch (error) {
+    console.error('Error listing services:', error);
+    res.status(500).json({ success: false, message: 'Error listing services', error: error.message });
+  }
+});
+
+// PATCH /api/vendors/services/:index - update service (vendor only by index)
+router.patch('/services/:index', auth, requireRole('vendor'), async (req, res) => {
+  try {
+    const { index } = req.params;
+    const { name, description, active } = req.body;
+    const vendor = await User.findById(req.user.id).select('services');
+    const idx = parseInt(index);
+    if (isNaN(idx) || idx < 0 || idx >= vendor.services.length) {
+      return res.status(400).json({ success: false, message: 'Invalid service index' });
+    }
+    if (name !== undefined) vendor.services[idx].name = name;
+    if (description !== undefined) vendor.services[idx].description = description;
+    if (active !== undefined) vendor.services[idx].active = active;
+    await vendor.save();
+    res.json({ success: true, message: 'Service updated', data: vendor.services[idx] });
+  } catch (error) {
+    console.error('Error updating service:', error);
+    res.status(500).json({ success: false, message: 'Error updating service', error: error.message });
+  }
+});
+
+// DELETE /api/vendors/services/:index - remove service
+router.delete('/services/:index', auth, requireRole('vendor'), async (req, res) => {
+  try {
+    const { index } = req.params;
+    const vendor = await User.findById(req.user.id).select('services');
+    const idx = parseInt(index);
+    if (isNaN(idx) || idx < 0 || idx >= vendor.services.length) {
+      return res.status(400).json({ success: false, message: 'Invalid service index' });
+    }
+    vendor.services.splice(idx, 1);
+    await vendor.save();
+    res.json({ success: true, message: 'Service removed', data: vendor.services });
+  } catch (error) {
+    console.error('Error removing service:', error);
+    res.status(500).json({ success: false, message: 'Error removing service', error: error.message });
+  }
+});

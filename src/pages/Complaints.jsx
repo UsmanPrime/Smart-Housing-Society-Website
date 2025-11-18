@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
+import { useLocation } from 'react-router-dom';
 import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
 import complainTop from '../assets/complaintTOP.webp';
@@ -13,6 +14,7 @@ export default function Page() {
   const [visibleSections, setVisibleSections] = useState({});
   const sectionRefs = useRef({});
   const [activeTab, setActiveTab] = useState('my'); // my | all | assigned
+  const location = useLocation();
   const [selected, setSelected] = useState(null);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
 
@@ -28,6 +30,12 @@ export default function Page() {
       setActiveTab('assigned');
     } else {
       setActiveTab('my');
+    }
+    // Apply status filter from query param by forcing tab if vendor
+    const params = new URLSearchParams(location.search);
+    const statusParam = params.get('status');
+    if (statusParam && isVendor) {
+      setActiveTab('assigned');
     }
   }, [isAdmin, isVendor]);
 
@@ -148,7 +156,12 @@ export default function Page() {
                 {activeTab === 'my' && 'My Complaints'}
                 {activeTab === 'assigned' && 'Assigned Complaints'}
               </h2>
-              <ComplaintList tab={activeTab} onOpen={(c) => setSelected(c)} refreshTrigger={refreshTrigger} />
+              <ComplaintList 
+                tab={activeTab} 
+                statusFilter={new URLSearchParams(location.search).get('status') || undefined}
+                onOpen={(c) => setSelected(c)} 
+                refreshTrigger={refreshTrigger} 
+              />
             </section>
           </div>
         </div>

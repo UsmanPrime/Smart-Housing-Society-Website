@@ -26,19 +26,18 @@ function validateBookingTime(facility, startTime, endTime) {
   const now = new Date();
   const hoursUntilBooking = (startTime - now) / (1000 * 60 * 60);
   
-  if (hoursUntilBooking < facility.bookingRules.minAdvanceHours) {
-    errors.push(`Booking must be made at least ${facility.bookingRules.minAdvanceHours} hours in advance`);
+  // Only enforce minimum advance hours if booking is less than 1 hour away
+  // This allows same-day bookings but prevents last-minute bookings
+  if (hoursUntilBooking < 0) {
+    errors.push('Cannot create booking for past time');
+  } else if (hoursUntilBooking < 1 && facility.bookingRules.minAdvanceHours > 1) {
+    errors.push(`Booking must be made at least 1 hour in advance`);
   }
   
   const daysUntilBooking = (startTime - now) / (1000 * 60 * 60 * 24);
   
   if (daysUntilBooking > facility.bookingRules.advanceBookingDays) {
     errors.push(`Booking cannot be made more than ${facility.bookingRules.advanceBookingDays} days in advance`);
-  }
-  
-  // Check if booking is in the past
-  if (startTime < now) {
-    errors.push('Cannot create booking for past time');
   }
   
   return {

@@ -60,7 +60,10 @@ export default function AdminDashboard() {
     fetchAllUsers('resident');
     fetchAllUsers('vendor');
     fetchActiveComplaintsCount();
-  }, []);
+    
+    // Fetch initial bookings for upcoming bookings display
+    refresh({ status: 'pending', limit: 50 });
+  }, [refresh]);
   const fetchActiveComplaintsCount = async () => {
     try {
       const token = localStorage.getItem('token');
@@ -167,8 +170,8 @@ export default function AdminDashboard() {
       refresh({
         status: statusFilter === 'all' ? undefined : statusFilter,
         facilityId: facilityFilter === 'all' ? undefined : facilityFilter,
-        dateFrom: dateFrom || undefined,
-        dateTo: dateTo || undefined
+        startDate: dateFrom || undefined,
+        endDate: dateTo || undefined
       });
     }
   }, [showAllBookings, facilityFilter, statusFilter, dateFrom, dateTo, refresh]);
@@ -192,16 +195,16 @@ export default function AdminDashboard() {
   const confirmReason = async (reasonText) => {
     if (!reasonDlg.id) return;
     if (reasonDlg.action === 'approve') {
-      await approveBooking(reasonDlg.id, reasonText, user?.id || 'admin1');
+      await approveBooking(reasonDlg.id, reasonText, user?.id);
     } else {
-      await rejectBooking(reasonDlg.id, reasonText, user?.id || 'admin1');
+      await rejectBooking(reasonDlg.id, reasonText, user?.id);
     }
     closeReason();
     refresh({
       status: statusFilter === 'all' ? undefined : statusFilter,
       facilityId: facilityFilter === 'all' ? undefined : facilityFilter,
-      dateFrom: dateFrom || undefined,
-      dateTo: dateTo || undefined
+      startDate: dateFrom || undefined,
+      endDate: dateTo || undefined
     });
   };
 
@@ -293,7 +296,13 @@ export default function AdminDashboard() {
                   </svg>
                 </div>
               </div>
-              <button className="text-sm text-orange-600 hover:underline">Review now →</button>
+              <button 
+                onClick={() => {
+                  const el = document.querySelector('[data-pending-users]');
+                  if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                }}
+                className="text-sm text-orange-600 hover:underline"
+              >Review now →</button>
             </div>
 
             {/* Active Complaints Card */}
@@ -330,7 +339,7 @@ export default function AdminDashboard() {
                   </svg>
                 </div>
               </div>
-              <p className="text-sm text-gray-500">Current month</p>
+              <p className="text-sm text-gray-500">Coming soon</p>
             </div>
           </div>
 
@@ -351,7 +360,7 @@ export default function AdminDashboard() {
               </div>
               
               <div className="space-y-4">
-                <div className="w-full px-4 py-3 rounded-lg bg-blue-50">
+                <div className="w-full px-4 py-3 rounded-lg bg-blue-50" data-pending-users>
                   <div className="flex items-center justify-between mb-3">
                     <span className="text-ng-blue font-medium">Pending Registrations ({pendingUsers.length})</span>
                   </div>
@@ -595,7 +604,7 @@ export default function AdminDashboard() {
                   {upcoming.map(b => (
                     <div key={b.id} className="bg-white p-3 rounded-lg shadow-sm text-sm flex justify-between items-start">
                       <div>
-                        <p className="font-semibold text-gray-900">{b.title}</p>
+                        <p className="font-semibold text-gray-900">{b.purpose || b.title || 'Booking'}</p>
                         <p className="text-gray-600">
                           {facMap[b.facilityId] || b.facilityId} • {new Date(b.start).toLocaleDateString()} {new Date(b.start).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                         </p>
@@ -680,7 +689,7 @@ export default function AdminDashboard() {
                         <tbody>
                           {bookings.map(b => (
                             <tr key={b.id} className="border-t">
-                              <td className="px-4 py-2">{b.title}</td>
+                              <td className="px-4 py-2">{b.purpose || b.title || 'Booking'}</td>
                               <td className="px-4 py-2">{facMap[b.facilityId] || b.facilityId}</td>
                               <td className="px-4 py-2">
                                 {new Date(b.start).toLocaleDateString()}<br />

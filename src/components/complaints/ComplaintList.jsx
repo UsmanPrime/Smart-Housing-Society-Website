@@ -17,7 +17,7 @@ const timeAgo = (iso) => {
 
 const truncate = (str, n = 110) => (str?.length > n ? str.slice(0, n - 1) + '…' : str || '')
 
-export default function ComplaintList({ tab = 'my', onOpen, refreshTrigger }) {
+export default function ComplaintList({ tab = 'my', onOpen, refreshTrigger, statusFilter }) {
   const { filterComplaints, loading, error, refresh, fetchComplaints } = useComplaints()
   const [filters, setFilters] = useState({ status: '', priority: '', category: '' })
 
@@ -34,7 +34,23 @@ export default function ComplaintList({ tab = 'my', onOpen, refreshTrigger }) {
     return () => clearInterval(interval);
   }, [tab]);
 
-  const list = useMemo(() => filterComplaints(tab, filters), [filterComplaints, tab, filters])
+  const baseList = useMemo(() => filterComplaints(tab, filters), [filterComplaints, tab, filters])
+
+  // Apply external statusFilter for multi-status shortcuts (vendor quick actions)
+  const list = useMemo(() => {
+    if (!statusFilter) return baseList;
+    // Map special filters
+    if (statusFilter === 'completed') {
+      const set = new Set(['completed','resolved','closed']);
+      return baseList.filter(c => set.has(c.status));
+    }
+    if (statusFilter === 'open') {
+      const set = new Set(['open','in-progress']);
+      return baseList.filter(c => set.has(c.status));
+    }
+    // Fallback single status
+    return baseList.filter(c => c.status === statusFilter);
+  }, [statusFilter, baseList])
 
   return (
     <div aria-busy={loading ? 'true' : 'false'}>

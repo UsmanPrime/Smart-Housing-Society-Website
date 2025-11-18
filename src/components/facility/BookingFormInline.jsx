@@ -33,21 +33,34 @@ export default function BookingFormInline() {
     return Object.keys(e).length === 0
   }
 
-  const onSubmit = (e) => {
+  const onSubmit = async (e) => {
     e.preventDefault()
     setSuccess('')
     setConflicts([])
+    setErrors({})
     if (!validate()) return
-    const res = createBooking({
+    
+    // Combine date and time into proper datetime strings
+    // Keep them in local timezone to avoid UTC conversion issues
+    const startDateTime = `${form.date}T${form.startTime}:00`
+    const endDateTime = `${form.date}T${form.endTime}:00`
+    
+    const res = await createBooking({
       facilityId: form.facilityId,
-      title: form.title,
-      date: form.date,
-      startTime: form.startTime,
-      endTime: form.endTime,
-      note: form.note,
-      createdBy: user?.id || 'resident1',
+      startTime: startDateTime,
+      endTime: endDateTime,
+      purpose: form.title,
+      notes: form.note,
     })
-    if (!res.ok) { setConflicts(res.conflicts); return }
+    if (!res.ok) { 
+      if (res.conflicts) {
+        setConflicts(res.conflicts)
+      }
+      if (res.error) {
+        setErrors({ general: res.error })
+      }
+      return 
+    }
     setSuccess('Booking request submitted (pending approval).')
     setForm(prev => ({ ...prev, title: '', note: '' }))
   }
@@ -210,6 +223,12 @@ export default function BookingFormInline() {
             placeholder="Any additional details"
           />
         </div>
+
+        {errors.general && (
+          <div className="text-sm text-rose-700 bg-rose-50 border border-rose-200 rounded p-3">
+            {errors.general}
+          </div>
+        )}
 
         {conflicts.length > 0 && (
           <div className="text-xs text-rose-700 bg-rose-50 border border-rose-200 rounded p-2">

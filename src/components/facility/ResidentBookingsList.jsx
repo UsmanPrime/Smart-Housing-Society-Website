@@ -17,7 +17,7 @@ export default function ResidentBookingsList() {
 
   useEffect(() => { fetchBookings() }, [fetchBookings])
 
-  const myBookings = listMyBookings(user?.id || 'resident1')
+  const myBookings = listMyBookings(user?.id || '')
   const facMap = Object.fromEntries(listFacilities().map(f => [f._id, f.name]))
 
   const now = Date.now()

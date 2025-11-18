@@ -17,9 +17,33 @@ const userSchema = new mongoose.Schema(
       enum: ['plumbing', 'electrical', 'cleaning', 'maintenance', 'security', 'other']
     }],
     isAvailable: { type: Boolean, default: true },
+    serviceCategory: { type: String, trim: true },
+    services: [{
+      name: { type: String, required: true, trim: true },
+      description: { type: String, trim: true },
+      active: { type: Boolean, default: true },
+      createdAt: { type: Date, default: Date.now }
+    }],
+    ratings: [{
+      residentId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+      complaintId: { type: mongoose.Schema.Types.ObjectId, ref: 'Complaint', required: true },
+      stars: { type: Number, min: 1, max: 5, required: true },
+      comment: { type: String, trim: true },
+      createdAt: { type: Date, default: Date.now }
+    }],
+    ratingAverage: { type: Number, default: 0 },
+    ratingCount: { type: Number, default: 0 }
   },
   { timestamps: true }
 );
+
+// Recalculate rating averages when ratings array changes (manual trigger via method)
+userSchema.methods.addRating = function(stars) {
+  // Update running average efficiently
+  this.ratingCount = (this.ratingCount || 0) + 1;
+  const prevTotal = (this.ratingAverage || 0) * (this.ratingCount - 1);
+  this.ratingAverage = ((prevTotal + stars) / this.ratingCount);
+};
 
 // Index already defined by unique:true in schema, no need to add manually
 const User = mongoose.models.User || mongoose.model('User', userSchema);

@@ -3,6 +3,7 @@ import Home from './pages/Home'
 import Login from './pages/Login'
 import Register from './pages/Register'
 import Complaints from './pages/Complaints'
+import Earnings from './pages/Earnings'
 import Facility from './pages/Facility'
 import Payments from './pages/Payments'
 import Unauthorized from './pages/Unauthorized'
@@ -25,6 +26,7 @@ export default function App() {
       <Route path="/complaints" element={<Complaints/>} />
       <Route path="/facility" element={<Facility/>} />
       <Route path="/payments" element={<Payments/>} />
+      <Route path="/earnings" element={<Earnings/>} />
   <Route path="/announcements" element={<Announcements/>} />
   <Route path="/forgot-password" element={<ForgotPassword/>} />
       <Route 

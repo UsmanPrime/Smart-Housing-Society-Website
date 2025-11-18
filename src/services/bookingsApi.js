@@ -36,6 +36,25 @@ async function api(url, opts = {}) {
   }
 }
 
+// Remove empty or invalid values from query params
+function cleanParams(params = {}) {
+  const out = {};
+  for (const [key, value] of Object.entries(params)) {
+    // Skip undefined/null/empty string and accidental string literals
+    if (
+      value === undefined ||
+      value === null ||
+      value === '' ||
+      value === 'undefined' ||
+      value === 'null'
+    ) {
+      continue;
+    }
+    out[key] = value;
+  }
+  return out;
+}
+
 export const bookingsApi = {
   // Facilities endpoints
   listFacilities: (params = {}) => {
@@ -54,7 +73,7 @@ export const bookingsApi = {
 
   // Bookings endpoints
   listBookings: (params = {}) => {
-    const q = new URLSearchParams(params).toString();
+    const q = new URLSearchParams(cleanParams(params)).toString();
     return api('/bookings' + (q ? `?${q}` : ''));
   },
   

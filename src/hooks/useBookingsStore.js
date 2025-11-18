@@ -14,7 +14,14 @@ export function useBookingsStore() {
       console.log('Fetching facilities from API... (attempt', retryCount + 1, ')');
       const data = await bookingsApi.listFacilities();
       console.log('Facilities loaded:', data?.length || 0);
-      setFacilities(data || []);
+      
+      // Normalize facility data to have consistent 'id' field
+      const normalizedFacilities = (data || []).map(facility => ({
+        ...facility,
+        id: facility._id || facility.id
+      }));
+      
+      setFacilities(normalizedFacilities);
       setLoading(false);
     } catch (e) {
       console.error('Error fetching facilities:', e);
@@ -51,23 +58,35 @@ export function useBookingsStore() {
         return { bookings: [], total: 0 };
       }
       
+      console.log('Fetching bookings with filters:', filters);
       const response = await bookingsApi.listBookings(filters);
-      setBookings(response.bookings || []);
-      return response;
+      console.log('Bookings API response:', response);
+      
+      // Normalize booking data structure for consistent usage across components
+      const normalizedBookings = (response.bookings || []).map(booking => ({
+        ...booking,
+        id: booking._id || booking.id,
+        start: booking.startTime || booking.start,
+        end: booking.endTime || booking.end,
+        facilityId: booking.facilityId?._id || booking.facilityId,
+        facilityName: booking.facilityId?.name,
+        userId: booking.userId?._id || booking.userId,
+        userName: booking.userId?.name,
+      }));
+      
+      console.log('Normalized bookings:', normalizedBookings.length, 'bookings');
+      setBookings(normalizedBookings);
+      setLoading(false);
+      return { ...response, bookings: normalizedBookings };
     } catch (e) {
       console.error('Error fetching bookings:', e);
-      // Don't set error if it's just an auth issue or network error
-      const errorMsg = e.message || '';
-      if (!errorMsg.includes('401') && 
-          !errorMsg.includes('token') && 
-          !errorMsg.includes('No token') &&
-          !errorMsg.includes('Failed to fetch')) {
-        setError('Failed to load bookings: ' + errorMsg);
-      }
+      console.error('Error details:', e.message);
+      
+      // Always set the error to be visible
+      setError('Failed to load bookings: ' + (e.message || 'Unknown error'));
       setBookings([]);
-      return { bookings: [], total: 0 };
-    } finally {
       setLoading(false);
+      return { bookings: [], total: 0 };
     }
   }, []);
 
@@ -90,6 +109,9 @@ export function useBookingsStore() {
         if (errorData.conflicts) {
           return { ok: false, conflicts: errorData.conflicts, message: errorData.message };
         }
+        if (errorData.errors) {
+          return { ok: false, error: errorData.errors.join(', '), message: errorData.message };
+        }
       } catch (parseError) {
         // Not JSON, use plain error message
       }
@@ -107,8 +129,8 @@ export function useBookingsStore() {
       setError(null);
       const result = await bookingsApi.updateBooking(id, data);
       
-      // Update local state
-      setBookings(prev => prev.map(b => b._id === id ? result.booking : b));
+      // Refresh bookings to ensure normalized state
+      await fetchBookings();
       
       return { ok: true, booking: result.booking, message: result.message };
     } catch (e) {
@@ -118,7 +140,7 @@ export function useBookingsStore() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [fetchBookings]);
 
   const deleteBooking = useCallback(async (id) => {
     try {
@@ -126,8 +148,8 @@ export function useBookingsStore() {
       setError(null);
       await bookingsApi.deleteBooking(id);
       
-      // Remove from local state
-      setBookings(prev => prev.filter(b => b._id !== id));
+      // Refresh bookings
+      await fetchBookings();
       
       return { ok: true, message: 'Booking cancelled successfully' };
     } catch (e) {
@@ -137,7 +159,7 @@ export function useBookingsStore() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [fetchBookings]);
 
   const approveBooking = useCallback(async (id) => {
     try {
@@ -145,8 +167,8 @@ export function useBookingsStore() {
       setError(null);
       const result = await bookingsApi.approveBooking(id);
       
-      // Update local state
-      setBookings(prev => prev.map(b => b._id === id ? result.booking : b));
+      // Refresh bookings to reflect changes
+      await fetchBookings();
       
       return { ok: true, booking: result.booking, message: result.message };
     } catch (e) {
@@ -156,7 +178,7 @@ export function useBookingsStore() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [fetchBookings]);
 
   const rejectBooking = useCallback(async (id, rejectionReason) => {
     try {
@@ -164,8 +186,8 @@ export function useBookingsStore() {
       setError(null);
       const result = await bookingsApi.rejectBooking(id, rejectionReason);
       
-      // Update local state
-      setBookings(prev => prev.map(b => b._id === id ? result.booking : b));
+      // Refresh bookings to reflect changes
+      await fetchBookings();
       
       return { ok: true, booking: result.booking, message: result.message };
     } catch (e) {
@@ -175,7 +197,7 @@ export function useBookingsStore() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [fetchBookings]);
 
   const getCalendarData = useCallback(async (facilityId, startDate, endDate) => {
     try {
@@ -215,6 +237,7 @@ export function useBookingsStore() {
     error,
     fetchFacilities,
     fetchBookings,
+    refresh: fetchBookings, // alias for AdminDashboard compatibility
     listFacilities,
     listMyBookings,
     createBooking,

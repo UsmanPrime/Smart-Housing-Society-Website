@@ -5,6 +5,7 @@ import PriorityBadge from './PriorityBadge'
 import { useComplaintsStore } from '../../hooks/useComplaintsStore'
 import useComplaints from '../../hooks/useComplaints'
 import VendorAssignDropdown from './VendorAssignDropdown'
+import { api } from '../../lib/api'
 
 const timeAgo = (iso) => {
   if (!iso) return ''
@@ -25,12 +26,16 @@ export default function ComplaintDetailModal({ complaint, onClose, onUpdate }) {
   const [details, setDetails] = useState(complaint)
   const [commentText, setCommentText] = useState('')
   const [fetchLoading, setFetchLoading] = useState(false)
+  const [ratingStars, setRatingStars] = useState(0)
+  const [ratingComment, setRatingComment] = useState('')
+  const [ratingSubmitting, setRatingSubmitting] = useState(false)
   const dialogRef = useRef(null)
 
   const isAdmin = user?.role === 'admin'
   const isVendor = user?.role === 'vendor'
   const isResident = user?.role === 'resident'
   const vendorAssigned = isVendor && details?.assignedTo?._id === user?.id
+  const canRate = isResident && details?.assignedTo && ['completed','resolved','closed'].includes(details.status)
 
   // Fetch full complaint details
   useEffect(() => {
@@ -213,6 +218,63 @@ export default function ComplaintDetailModal({ complaint, onClose, onUpdate }) {
                   <p className="text-xs text-gray-500 mt-2">
                     Note: Admin will review and mark as resolved
                   </p>
+                </div>
+              )}
+
+              {/* Resident rating */}
+              {canRate && (
+                <div className="border-t pt-4">
+                  <div className="text-sm font-semibold mb-2">Rate Vendor Service</div>
+                  <div className="flex items-center gap-2 mb-2">
+                    {[1,2,3,4,5].map(star => (
+                      <button
+                        key={star}
+                        type="button"
+                        onClick={() => setRatingStars(star)}
+                        className={`w-6 h-6 ${star <= ratingStars ? 'text-yellow-400' : 'text-gray-300'}`}
+                        aria-label={`Rate ${star} star`}
+                      >
+                        <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 20 20">
+                          <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                        </svg>
+                      </button>
+                    ))}
+                    <span className="text-xs text-gray-600">{ratingStars} / 5</span>
+                  </div>
+                  <textarea
+                    value={ratingComment}
+                    onChange={e => setRatingComment(e.target.value)}
+                    rows={2}
+                    placeholder="Optional comment"
+                    className="w-full border rounded px-3 py-2 text-sm mb-2"
+                  />
+                  <button
+                    disabled={ratingSubmitting || ratingStars === 0}
+                    onClick={async () => {
+                      if (ratingStars === 0) return;
+                      try {
+                        setRatingSubmitting(true);
+                        const token = localStorage.getItem('token');
+                        await api.post(`/api/vendors/${details.assignedTo._id}/rate`, {
+                          complaintId: details._id,
+                          stars: ratingStars,
+                          comment: ratingComment.trim() || undefined
+                        }, { token });
+                        setRatingComment('');
+                        // Prevent multiple ratings
+                        setRatingStars(0);
+                        alert('Rating submitted successfully');
+                      } catch (e) {
+                        alert(e?.message || 'Failed to submit rating');
+                      } finally {
+                        setRatingSubmitting(false);
+                      }
+                    }}
+                    className="bg-yellow-500 hover:bg-yellow-600 text-white px-4 py-2 rounded text-sm disabled:opacity-40"
+                  >
+                    {ratingSubmitting ? 'Submitting...' : 'Submit Rating'}
+                  </button>
+                  <p className="text-xs text-gray-500 mt-1">You can rate once the task is completed / resolved.</p>
                 </div>
               )}
 
