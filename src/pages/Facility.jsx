@@ -3,7 +3,7 @@ import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
 import facilityIllustration from "../assets/facility.png";
 import facilityHome from "../assets/facilityHOME.jpeg";
-import BookingFormInline from "../components/facility/BookingFormInline"; // added
+import BookingFormInline from "../components/facility/BookingFormInline";
 import calendar from "../assets/calendar.jpg";
 import conflict from "../assets/conflict.jpg";
 import rules from "../assets/rules.jpg";
@@ -23,6 +23,7 @@ const cards = [
 export default function FacilityPage() {
   const [visibleCards, setVisibleCards] = useState([]);
   const cardRefs = useRef([]);
+  const observerRef = useRef(null);
 
   const scrollToFeatures = () => {
     const el = document.getElementById("facility-features");
@@ -40,20 +41,38 @@ export default function FacilityPage() {
       document.head.appendChild(link);
     }
 
-    const observer = new IntersectionObserver(
+    // Optimized observer with better performance
+    observerRef.current = new IntersectionObserver(
       (entries) => {
         entries.forEach((entry) => {
           if (entry.isIntersecting) {
-            const index = entry.target.getAttribute("data-index");
-            setVisibleCards((prev) => [...new Set([...prev, Number(index)])]);
+            const index = Number(entry.target.getAttribute("data-index"));
+            setVisibleCards((prev) => {
+              if (!prev.includes(index)) {
+                return [...prev, index];
+              }
+              return prev;
+            });
+            // Unobserve after animation to improve performance
+            observerRef.current?.unobserve(entry.target);
           }
         });
       },
-      { threshold: 0.2 }
+      {
+        threshold: 0.1,
+        rootMargin: "50px", // Start animation slightly before element is visible
+      }
     );
 
-    cardRefs.current.forEach((card) => card && observer.observe(card));
-    return () => observer.disconnect();
+    cardRefs.current.forEach((card) => {
+      if (card) observerRef.current?.observe(card);
+    });
+
+    return () => {
+      if (observerRef.current) {
+        observerRef.current.disconnect();
+      }
+    };
   }, []);
 
   return (
@@ -106,17 +125,23 @@ export default function FacilityPage() {
                   key={index}
                   ref={(el) => (cardRefs.current[index] = el)}
                   data-index={index}
-                  className={`rounded-xl overflow-hidden border-[3px] border-white/40 bg-white/5 transform transition-all duration-300 hover:scale-105 hover:bg-white/10 hover:shadow-2xl h-[300px]
+                  className={`rounded-xl overflow-hidden border-[3px] border-white/40 bg-white/5 transform transition-all duration-500 ease-out hover:scale-105 hover:bg-white/10 hover:shadow-2xl h-[300px] will-change-transform
                     ${
                       visibleCards.includes(index)
                         ? "opacity-100 translate-y-0"
-                        : "opacity-0 translate-y-10"
+                        : "opacity-0 translate-y-8"
                     }`}
+                  style={{
+                    transitionDelay: visibleCards.includes(index)
+                      ? `${index * 100}ms`
+                      : "0ms",
+                  }}
                 >
                   <img
                     src={img}
                     alt={`${title} ${subtitle}`}
                     className="h-[75%] w-full object-cover transition-all duration-300 hover:brightness-110"
+                    loading="lazy"
                   />
                   <div className="h-[25%] p-5 text-center text-white flex items-center justify-center">
                     <span className="text-lg font-normal leading-relaxed">

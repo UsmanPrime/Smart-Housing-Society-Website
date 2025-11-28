@@ -6,13 +6,15 @@ import AnnouncementsList from '../../components/AnnouncementsList';
 import { useBookingsStore } from '../../hooks/useBookingsStore';
 import BookingLegend from '../../components/facility/BookingLegend';
 import BookingDetailModal from '../../components/facility/BookingDetailModal';
+import useComplaints from '../../hooks/useComplaints';
 
 export default function ResidentDashboard() {
   const [user, setUser] = useState(null);
   const [selectedBooking, setSelectedBooking] = useState(null);
   const navigate = useNavigate();
 
-  const { listMyBookings, listFacilities, refresh, loading, error } = useBookingsStore();
+  const { listMyBookings, listFacilities, fetchBookings, loading, error } = useBookingsStore();
+  const { complaints, fetchComplaints, filterComplaints } = useComplaints();
 
   useEffect(() => {
     const userStr = localStorage.getItem('user');
@@ -33,14 +35,21 @@ export default function ResidentDashboard() {
     loadFonts();
   }, []);
 
-  useEffect(() => { refresh(); }, [refresh]);
+  useEffect(() => { 
+    fetchBookings(); 
+    fetchComplaints();
+  }, [fetchBookings, fetchComplaints]);
 
-  const myBookings = listMyBookings(user?.id || 'resident1');
-  const facMap = Object.fromEntries(listFacilities().map(f => [f.id, f.name]));
+  const myBookings = listMyBookings(user?.id || '');
+  const myComplaints = filterComplaints('my');
+  const facMap = Object.fromEntries(listFacilities().map(f => [f._id || f.id, f.name]));
 
   const now = Date.now();
   const activeCount = myBookings.filter(
-    b => !['cancelled','rejected'].includes(b.status) && new Date(b.end).getTime() >= now
+    b => !['cancelled','rejected'].includes(b.status) && new Date(b.endTime || b.end).getTime() >= now
+  ).length;
+  const activeComplaintsCount = myComplaints.filter(
+    c => !['resolved', 'closed'].includes(c.status)
   ).length;
 
   const statusColor =
@@ -96,7 +105,7 @@ export default function ResidentDashboard() {
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                 </svg>
               </div>
-              <div className="text-3xl font-bold text-ng-blue mb-2">0</div>
+              <div className="text-3xl font-bold text-ng-blue mb-2">{activeComplaintsCount}</div>
               <p className="text-gray-600 mb-4">Active complaints</p>
               <button 
                 onClick={() => navigate('/complaints')}
@@ -115,7 +124,7 @@ export default function ResidentDashboard() {
                 </svg>
               </div>
               <div className="text-3xl font-bold text-green-600 mb-2">$0.00</div>
-              <p className="text-gray-600 mb-4">Current dues</p>
+              <p className="text-gray-600 mb-4">Current dues (Coming soon)</p>
               <button 
                 onClick={() => navigate('/payments')}
                 className="bg-ng-blue text-white px-4 py-2 rounded-lg hover:bg-ng-accent transition-colors w-full"
@@ -145,11 +154,11 @@ export default function ResidentDashboard() {
                 {error && <div className="text-sm text-rose-600">{error}</div>}
                 <ul className="space-y-2">
                   {myBookings.map(b => (
-                    <li key={b.id} className="rounded-md px-4 py-3 flex flex-col md:flex-row md:items-center md:justify-between gap-2 border">
+                    <li key={b._id || b.id} className="rounded-md px-4 py-3 flex flex-col md:flex-row md:items-center md:justify-between gap-2 border">
                       <div>
-                        <div className="font-medium">{b.title}</div>
+                        <div className="font-medium">{b.purpose || b.title || 'Booking'}</div>
                         <div className="text-xs text-gray-600">
-                          {facMap[b.facilityId]} • {new Date(b.start).toLocaleDateString()} {new Date(b.start).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} - {new Date(b.end).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                          {facMap[b.facilityId?._id || b.facilityId] || b.facilityId?.name || 'Unknown'} • {new Date(b.startTime || b.start).toLocaleDateString()} {new Date(b.startTime || b.start).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} - {new Date(b.endTime || b.end).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                         </div>
                       </div>
                       <div className="flex items-center gap-3">
@@ -222,11 +231,58 @@ export default function ResidentDashboard() {
             >
               Recent Activity
             </h2>
-            <div className="text-center py-12 text-gray-500">
-              <svg className="w-16 h-16 mx-auto mb-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-              </svg>
-              <p className="text-lg">No recent activity</p>
+            <div className="space-y-4">
+              {/* Recent Bookings */}
+              {myBookings.slice(0, 3).map(booking => (
+                <div key={booking._id} className="flex items-center gap-4 p-4 bg-gray-50 rounded-lg">
+                  <div className="flex-shrink-0">
+                    <svg className="w-10 h-10 text-ng-blue" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                    </svg>
+                  </div>
+                  <div className="flex-1">
+                    <p className="font-medium text-gray-900">{booking.purpose || booking.title || 'Facility Booking'}</p>
+                    <p className="text-sm text-gray-600">
+                      {facMap[booking.facilityId?._id || booking.facilityId] || booking.facilityId?.name || 'Unknown'} • {new Date(booking.startTime || booking.start).toLocaleDateString()}
+                    </p>
+                  </div>
+                  <span className={`text-xs font-medium px-2 py-1 rounded ${statusColor(booking.status)}`}>
+                    {booking.status}
+                  </span>
+                </div>
+              ))}
+              {/* Recent Complaints */}
+              {myComplaints.slice(0, 3).map(complaint => (
+                <div key={complaint._id} className="flex items-center gap-4 p-4 bg-gray-50 rounded-lg">
+                  <div className="flex-shrink-0">
+                    <svg className="w-10 h-10 text-ng-blue" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                    </svg>
+                  </div>
+                  <div className="flex-1">
+                    <p className="font-medium text-gray-900">{complaint.title}</p>
+                    <p className="text-sm text-gray-600">
+                      {complaint.category} • {new Date(complaint.createdAt).toLocaleDateString()}
+                    </p>
+                  </div>
+                  <span className={`text-xs font-medium px-2 py-1 rounded ${
+                    complaint.status === 'resolved' ? 'text-emerald-600 bg-emerald-50' :
+                    complaint.status === 'in-progress' ? 'text-blue-600 bg-blue-50' :
+                    complaint.status === 'pending' ? 'text-amber-600 bg-amber-50' :
+                    'text-gray-600 bg-gray-50'
+                  }`}>
+                    {complaint.status}
+                  </span>
+                </div>
+              ))}
+              {myBookings.length === 0 && myComplaints.length === 0 && (
+                <div className="text-center py-12 text-gray-500">
+                  <svg className="w-16 h-16 mx-auto mb-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                  </svg>
+                  <p className="text-lg">No recent activity</p>
+                </div>
+              )}
             </div>
           </div>
         </div>

@@ -3,6 +3,7 @@ import Home from './pages/Home'
 import Login from './pages/Login'
 import Register from './pages/Register'
 import Complaints from './pages/Complaints'
+import Earnings from './pages/Earnings'
 import Facility from './pages/Facility'
 import Payments from './pages/Payments'
 import Unauthorized from './pages/Unauthorized'
@@ -15,6 +16,8 @@ import Profile from './pages/Profile'
 import ForgotPassword from './pages/ForgotPassword'
 import VendorComplaintsPage from './pages/VendorComplaints'
 import FacilityPage from './pages/Facility'
+import AuditLogs from "./pages/admin/AuditLogs";
+import ReportsDashboard from "./pages/admin/ReportsDashboard";
 
 export default function App() {
   return (
@@ -25,6 +28,7 @@ export default function App() {
       <Route path="/complaints" element={<Complaints/>} />
       <Route path="/facility" element={<Facility/>} />
       <Route path="/payments" element={<Payments/>} />
+      <Route path="/earnings" element={<Earnings/>} />
   <Route path="/announcements" element={<Announcements/>} />
   <Route path="/forgot-password" element={<ForgotPassword/>} />
       <Route 
@@ -64,6 +68,8 @@ export default function App() {
       />
       <Route path="/vendor/complaints" element={<VendorComplaintsPage />} />
       <Route path="/facilities" element={<FacilityPage />} />
+      <Route path="/admin/audit-logs" element={<AuditLogs />} />
+      <Route path="/admin/reports" element={<ReportsDashboard />} />
     </Routes>
   )
 }

@@ -4,11 +4,11 @@ import { useBookingsStore } from '../../hooks/useBookingsStore'
 
 export default function BookingFormInline() {
   const { user } = useAuth()
-  const { listFacilities, createBooking } = useBookingsStore()
+  const { listFacilities, createBooking, loading, error: storeError, fetchFacilities } = useBookingsStore()
   const facilities = listFacilities()
   const today = useMemo(() => new Date().toISOString().slice(0,10), [])
   const [form, setForm] = useState({
-    facilityId: facilities[0]?.id || '',
+    facilityId: facilities[0]?._id || '',
     title: '',
     date: today,
     startTime: '10:00',
@@ -33,31 +33,91 @@ export default function BookingFormInline() {
     return Object.keys(e).length === 0
   }
 
-  const onSubmit = (e) => {
+  const onSubmit = async (e) => {
     e.preventDefault()
     setSuccess('')
     setConflicts([])
+    setErrors({})
     if (!validate()) return
-    const res = createBooking({
+    
+    // Combine date and time into proper datetime strings
+    // Keep them in local timezone to avoid UTC conversion issues
+    const startDateTime = `${form.date}T${form.startTime}:00`
+    const endDateTime = `${form.date}T${form.endTime}:00`
+    
+    const res = await createBooking({
       facilityId: form.facilityId,
-      title: form.title,
-      date: form.date,
-      startTime: form.startTime,
-      endTime: form.endTime,
-      note: form.note,
-      createdBy: user?.id || 'resident1',
+      startTime: startDateTime,
+      endTime: endDateTime,
+      purpose: form.title,
+      notes: form.note,
     })
-    if (!res.ok) { setConflicts(res.conflicts); return }
+    if (!res.ok) { 
+      if (res.conflicts) {
+        setConflicts(res.conflicts)
+      }
+      if (res.error) {
+        setErrors({ general: res.error })
+      }
+      return 
+    }
     setSuccess('Booking request submitted (pending approval).')
     setForm(prev => ({ ...prev, title: '', note: '' }))
   }
 
   // if facilities list updates (replaced), keep a valid selection
   useEffect(() => {
-    if (!form.facilityId || !facilities.find(f => f.id === form.facilityId)) {
-      setForm(prev => ({ ...prev, facilityId: facilities[0]?.id || '' }))
+    if (!form.facilityId || !facilities.find(f => f._id === form.facilityId)) {
+      setForm(prev => ({ ...prev, facilityId: facilities[0]?._id || '' }))
     }
   }, [facilities]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Show login message if user is not authenticated
+  if (!user) {
+    return (
+      <div className="space-y-6">
+        <h2
+          className="text-4xl md:text-4xl font-normal text-[#06164a] mb-4"
+          style={{ fontFamily: "'DM Serif Display', serif" }}
+        >
+          Create a booking
+        </h2>
+        <div className="bg-blue-50 border border-blue-200 rounded-lg p-6 text-center">
+          <p className="text-lg text-blue-900 mb-4">
+            Please log in to create a booking
+          </p>
+          <a 
+            href="/login" 
+            className="inline-block bg-[#07164a] text-white px-6 py-3 rounded-lg hover:bg-[#0a1f6b] transition-colors"
+          >
+            Go to Login
+          </a>
+        </div>
+      </div>
+    )
+  }
+
+  // Only residents can book facilities
+  if (user.role !== 'resident') {
+    return (
+      <div className="space-y-6">
+        <h2
+          className="text-4xl md:text-4xl font-normal text-[#06164a] mb-4"
+          style={{ fontFamily: "'DM Serif Display', serif" }}
+        >
+          Create a booking
+        </h2>
+        <div className="bg-amber-50 border border-amber-200 rounded-lg p-6 text-center">
+          <p className="text-lg text-amber-900 mb-2">
+            Facility Booking is for Residents Only
+          </p>
+          <p className="text-sm text-amber-700">
+            {user.role === 'admin' ? 'As an admin, you can view and manage bookings from the admin dashboard.' : 'This feature is only available to residents.'}
+          </p>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className="space-y-6">
@@ -70,17 +130,37 @@ export default function BookingFormInline() {
       </h2>
 
       <form onSubmit={onSubmit} className="space-y-6">
+        {storeError && (
+          <div className="bg-rose-50 border border-rose-200 rounded-lg p-4">
+            <p className="text-rose-700 text-sm mb-2">{storeError}</p>
+            <button
+              type="button"
+              onClick={fetchFacilities}
+              className="text-sm text-rose-700 underline hover:text-rose-900"
+            >
+              Try again
+            </button>
+          </div>
+        )}
+
         <div>
           <label className="block text-base font-semibold mb-2">Facility</label>
           <select
             value={form.facilityId}
             onChange={e=>set('facilityId', e.target.value)}
-            className="w-full bg-[#07164a] text-white rounded-lg h-12 px-4"
+            className="w-full bg-[#07164a] text-white rounded-lg h-12 px-4 disabled:opacity-50 disabled:cursor-not-allowed"
             required
+            disabled={loading || facilities.length === 0}
           >
-            {facilities.map(f => (
-              <option key={f.id} value={f.id}>{f.name}</option>
-            ))}
+            {loading ? (
+              <option value="">Loading facilities...</option>
+            ) : facilities.length === 0 ? (
+              <option value="">No facilities available</option>
+            ) : (
+              facilities.map(f => (
+                <option key={f._id} value={f._id}>{f.name}</option>
+              ))
+            )}
           </select>
           {errors.facilityId && <div className="text-xs text-rose-500 mt-1">{errors.facilityId}</div>}
         </div>
@@ -143,6 +223,12 @@ export default function BookingFormInline() {
             placeholder="Any additional details"
           />
         </div>
+
+        {errors.general && (
+          <div className="text-sm text-rose-700 bg-rose-50 border border-rose-200 rounded p-3">
+            {errors.general}
+          </div>
+        )}
 
         {conflicts.length > 0 && (
           <div className="text-xs text-rose-700 bg-rose-50 border border-rose-200 rounded p-2">

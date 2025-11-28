@@ -11,15 +11,15 @@ const statusClasses = {
 }
 
 export default function AdminBookingsPanel() {
-  const { refresh, bookings, listFacilities, loading, error } = useBookingsStore()
+  const { fetchBookings, bookings, listFacilities, loading, error } = useBookingsStore()
   const [filterStatus, setFilterStatus] = useState('all')
   const [facilityId, setFacilityId] = useState('all')
   const [selected, setSelected] = useState(null)
 
-  useEffect(() => { refresh(facilityId === 'all' ? undefined : facilityId) }, [refresh, facilityId])
+  useEffect(() => { fetchBookings({ facilityId: facilityId === 'all' ? undefined : facilityId }) }, [fetchBookings, facilityId])
 
   const facilities = listFacilities()
-  const facMap = useMemo(() => Object.fromEntries(facilities.map(f => [f.id, f.name])), [facilities])
+  const facMap = useMemo(() => Object.fromEntries(facilities.map(f => [f._id, f.name])), [facilities])
 
   const filtered = bookings.filter(b =>
     (filterStatus === 'all' || b.status === filterStatus) &&
@@ -32,7 +32,7 @@ export default function AdminBookingsPanel() {
         <h3 className="text-2xl font-semibold" style={{ fontFamily: "'DM Serif Display', serif" }}>All Facility Bookings</h3>
         <select value={facilityId} onChange={e=>setFacilityId(e.target.value)} className="bg-[#07164a] text-white rounded px-3 py-2 text-sm">
           <option value="all">All Facilities</option>
-          {facilities.map(f => <option key={f.id} value={f.id}>{f.name}</option>)}
+          {facilities.map(f => <option key={f._id} value={f._id}>{f.name}</option>)}
         </select>
         <select value={filterStatus} onChange={e=>setFilterStatus(e.target.value)} className="bg-[#07164a] text-white rounded px-3 py-2 text-sm">
           <option value="all">All Statuses</option>
@@ -60,7 +60,7 @@ export default function AdminBookingsPanel() {
           </thead>
           <tbody>
             {filtered.map(b => (
-              <tr key={b.id} className="border-t">
+              <tr key={b._id} className="border-t">
                 <td className="px-4 py-2">{b.title}</td>
                 <td className="px-4 py-2">{facMap[b.facilityId]}</td>
                 <td className="px-4 py-2">

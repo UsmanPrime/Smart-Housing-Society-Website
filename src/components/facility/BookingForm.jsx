@@ -23,7 +23,7 @@ export default function BookingForm({ facilityId, date, onClose }) {
       title: title.trim(),
       date: date.toISOString().slice(0,10),
       startTime, endTime, note,
-      createdBy: user?.id || 'resident1',
+      createdBy: user?.id,
     })
     if (!res.ok) { setConflicts(res.conflicts); return }
     onClose()

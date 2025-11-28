@@ -78,10 +78,154 @@ export function resetOtpTemplate({ name, otp }) {
   return { subject, html };
 }
 
+export function bookingApprovedEmail(name, booking) {
+  const subject = 'Booking Approved - ' + booking.facilityName;
+  const startTime = new Date(booking.startTime).toLocaleString();
+  const endTime = new Date(booking.endTime).toLocaleString();
+  
+  const html = wrapEmail('Booking Approved', `
+    <p>Hi <strong>${name || 'there'}</strong>,</p>
+    <p>Great news! Your booking has been <strong>approved</strong>.</p>
+    <div style="background: #f0f0f0; padding: 16px; border-radius: 8px; margin: 16px 0;">
+      <h3 style="margin-top: 0; color: #0b1a4a;">Booking Details</h3>
+      <p><strong>Facility:</strong> ${booking.facilityName}</p>
+      <p><strong>Start Time:</strong> ${startTime}</p>
+      <p><strong>End Time:</strong> ${endTime}</p>
+    </div>
+    <p>Please arrive on time and follow the facility rules. We hope you enjoy your booking!</p>
+    <p style="margin-top: 20px;">
+      <a href="${(process.env.APP_URL || 'http://localhost:5173') + '/facility'}" style="display:inline-block; padding:12px 20px; background:#0b1a4a; color:#fff; border-radius:6px; text-decoration:none; font-weight: bold;">View My Bookings</a>
+    </p>
+  `);
+  return { subject, html };
+}
+
+export function bookingRejectedEmail(name, booking) {
+  const subject = 'Booking Rejected - ' + booking.facilityName;
+  const startTime = new Date(booking.startTime).toLocaleString();
+  const endTime = new Date(booking.endTime).toLocaleString();
+  
+  const html = wrapEmail('Booking Rejected', `
+    <p>Hi <strong>${name || 'there'}</strong>,</p>
+    <p>We're sorry to inform you that your booking has been <strong>rejected</strong>.</p>
+    <div style="background: #f0f0f0; padding: 16px; border-radius: 8px; margin: 16px 0;">
+      <h3 style="margin-top: 0; color: #0b1a4a;">Booking Details</h3>
+      <p><strong>Facility:</strong> ${booking.facilityName}</p>
+      <p><strong>Start Time:</strong> ${startTime}</p>
+      <p><strong>End Time:</strong> ${endTime}</p>
+      <p><strong>Reason:</strong> ${booking.reason || 'Not specified'}</p>
+    </div>
+    <p>If you have any questions or concerns, please contact the administration.</p>
+    <p style="margin-top: 20px;">
+      <a href="${(process.env.APP_URL || 'http://localhost:5173') + '/facility'}" style="display:inline-block; padding:12px 20px; background:#0b1a4a; color:#fff; border-radius:6px; text-decoration:none; font-weight: bold;">Create New Booking</a>
+    </p>
+  `);
+  return { subject, html };
+}
+
+export function complaintAssignedEmail(vendor, complaint) {
+  const subject = `New Work Assigned: ${complaint.title}`;
+  const html = wrapEmail('New Work Assignment', `
+    <p>Hi <strong>${vendor.name || 'there'}</strong>,</p>
+    <p>A new complaint has been assigned to you. Please review the details below and take appropriate action.</p>
+    <div style="background: #f0f0f0; padding: 16px; border-radius: 8px; margin: 16px 0;">
+      <h3 style="margin-top: 0; color: #0b1a4a;">${complaint.title}</h3>
+      <p><strong>Category:</strong> <span style="text-transform: capitalize;">${complaint.category}</span></p>
+      <p><strong>Priority:</strong> <span style="text-transform: capitalize; color: ${complaint.priority === 'high' ? '#d9534f' : complaint.priority === 'medium' ? '#f0ad4e' : '#5bc0de'};">${complaint.priority}</span></p>
+      <p><strong>Location:</strong> ${complaint.location || 'Not specified'}</p>
+      <p><strong>Description:</strong></p>
+      <p style="white-space: pre-wrap; line-height: 1.6;">${complaint.description}</p>
+      <p><strong>Submitted:</strong> ${new Date(complaint.createdAt).toLocaleString()}</p>
+    </div>
+    <p style="margin-top: 20px;">
+      <a href="${(process.env.APP_URL || 'http://localhost:5173') + '/vendor-complaints'}" style="display:inline-block; padding:12px 20px; background:#0b1a4a; color:#fff; border-radius:6px; text-decoration:none; font-weight: bold;">View Work Assignment →</a>
+    </p>
+  `);
+  return { subject, html };
+}
+
+export function complaintStatusChangedEmail(user, complaint, newStatus) {
+  const subject = `Complaint Status Updated: ${complaint.title}`;
+  const statusColors = {
+    'open': '#5bc0de',
+    'in-progress': '#f0ad4e',
+    'resolved': '#5cb85c',
+    'closed': '#777'
+  };
+  const statusColor = statusColors[newStatus] || '#333';
+  
+  const html = wrapEmail('Complaint Status Update', `
+    <p>Hi <strong>${user.name || 'there'}</strong>,</p>
+    <p>The status of your complaint has been updated to <strong style="color: ${statusColor}; text-transform: uppercase;">${newStatus}</strong>.</p>
+    <div style="background: #f0f0f0; padding: 16px; border-radius: 8px; margin: 16px 0;">
+      <h3 style="margin-top: 0; color: #0b1a4a;">${complaint.title}</h3>
+      <p><strong>Category:</strong> <span style="text-transform: capitalize;">${complaint.category}</span></p>
+      <p><strong>Current Status:</strong> <span style="text-transform: capitalize; color: ${statusColor};">${newStatus}</span></p>
+      <p><strong>Last Updated:</strong> ${new Date().toLocaleString()}</p>
+    </div>
+    ${newStatus === 'resolved' || newStatus === 'closed' ? '<p>Thank you for your patience. If you have any further concerns, please submit a new complaint.</p>' : '<p>Our team is working on resolving your complaint. You will receive updates as progress is made.</p>'}
+    <p style="margin-top: 20px;">
+      <a href="${(process.env.APP_URL || 'http://localhost:5173') + '/complaints'}" style="display:inline-block; padding:12px 20px; background:#0b1a4a; color:#fff; border-radius:6px; text-decoration:none; font-weight: bold;">View Complaint Details →</a>
+    </p>
+  `);
+  return { subject, html };
+}
+
+export function newCommentEmail(user, complaint, comment) {
+  const subject = `New Comment on: ${complaint.title}`;
+  const html = wrapEmail('New Comment Added', `
+    <p>Hi <strong>${user.name || 'there'}</strong>,</p>
+    <p>A new comment has been added to your complaint:</p>
+    <div style="background: #f0f0f0; padding: 16px; border-radius: 8px; margin: 16px 0;">
+      <h3 style="margin-top: 0; color: #0b1a4a;">${complaint.title}</h3>
+      <div style="background: #fff; padding: 12px; border-left: 3px solid #0b1a4a; margin-top: 12px;">
+        <p style="margin: 0 0 8px 0;"><strong>${comment.authorName}</strong> <span style="color: #999; font-size: 12px;">${new Date(comment.createdAt).toLocaleString()}</span></p>
+        <p style="margin: 0; white-space: pre-wrap; line-height: 1.6;">${comment.text}</p>
+      </div>
+    </div>
+    <p style="margin-top: 20px;">
+      <a href="${(process.env.APP_URL || 'http://localhost:5173') + '/complaints'}" style="display:inline-block; padding:12px 20px; background:#0b1a4a; color:#fff; border-radius:6px; text-decoration:none; font-weight: bold;">View Full Discussion →</a>
+    </p>
+  `);
+  return { subject, html };
+}
+
+export function bookingReminderEmail(user, booking, facility) {
+  const subject = `Reminder: Your booking starts in 1 hour - ${facility.name}`;
+  const startTime = new Date(booking.startTime).toLocaleString();
+  
+  const html = wrapEmail('Booking Reminder', `
+    <p>Hi <strong>${user.name || 'there'}</strong>,</p>
+    <p>This is a friendly reminder that your booking starts in <strong>1 hour</strong>!</p>
+    <div style="background: #fff3cd; padding: 16px; border-radius: 8px; margin: 16px 0; border-left: 4px solid #f0ad4e;">
+      <h3 style="margin-top: 0; color: #0b1a4a;">📅 Booking Details</h3>
+      <p><strong>Facility:</strong> ${facility.name}</p>
+      <p><strong>Start Time:</strong> ${startTime}</p>
+      <p><strong>Duration:</strong> ${Math.round((new Date(booking.endTime) - new Date(booking.startTime)) / (1000 * 60))} minutes</p>
+      ${booking.purpose ? `<p><strong>Purpose:</strong> ${booking.purpose}</p>` : ''}
+    </div>
+    <p><strong>Important Reminders:</strong></p>
+    <ul style="line-height: 1.8;">
+      <li>Please arrive on time</li>
+      <li>Follow all facility rules and guidelines</li>
+      <li>Clean up after use</li>
+      <li>Report any issues to the administration</li>
+    </ul>
+    <p>Have a great time!</p>
+  `);
+  return { subject, html };
+}
+
 export default {
   registrationPendingTemplate,
   accountApprovedTemplate,
   accountRejectedTemplate,
   announcementTemplate,
   resetOtpTemplate,
+  bookingApprovedEmail,
+  bookingRejectedEmail,
+  complaintAssignedEmail,
+  complaintStatusChangedEmail,
+  newCommentEmail,
+  bookingReminderEmail,
 };

@@ -1,23 +1,117 @@
+import { useState, useEffect, useCallback } from 'react'
 import useAuth from './useAuth'
-import { useComplaintsStore } from './useComplaintsStore'
-import { useMemo } from 'react'
+
+const API_BASE = '/api'
+
+// Helper function to get auth token
+const getAuthToken = () => {
+  return localStorage.getItem('token')
+}
+
+// Helper function for API requests
+const apiRequest = async (endpoint, options = {}) => {
+  const token = getAuthToken()
+  const headers = {
+    'Content-Type': 'application/json',
+    ...(token && { 'Authorization': `Bearer ${token}` }),
+    ...options.headers,
+  }
+
+  const response = await fetch(`${API_BASE}${endpoint}`, {
+    ...options,
+    headers,
+  })
+
+  const data = await response.json()
+
+  if (!response.ok) {
+    throw new Error(data.message || 'API request failed')
+  }
+
+  return data
+}
 
 export default function useComplaints() {
   const auth = useAuth()
-  const store = useComplaintsStore()
+  const [complaints, setComplaints] = useState([])
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState(null)
 
-  const filterComplaints = (tab, filters) => {
-    const uid = auth.user?.id || 'resident1'
-    const vid = auth.user?.id || 'vendor1'
-    return store.items.filter(c => {
-      if (tab === 'my' && c.createdBy !== uid) return false
-      if (tab === 'assigned' && c.assignedTo !== vid) return false
-      if (filters?.status && c.status !== filters.status) return false
-      if (filters?.priority && c.priority !== filters.priority) return false
-      if (filters?.category && c.category !== filters.category) return false
-      return true
-    })
+  // Fetch complaints from API
+  const fetchComplaints = useCallback(async (filters = {}) => {
+    setLoading(true)
+    setError(null)
+    try {
+      const queryParams = new URLSearchParams()
+      if (filters.status) queryParams.append('status', filters.status)
+      if (filters.category) queryParams.append('category', filters.category)
+      if (filters.priority) queryParams.append('priority', filters.priority)
+      if (filters.assignedTo) queryParams.append('assignedTo', filters.assignedTo)
+      if (filters.submittedBy) queryParams.append('submittedBy', filters.submittedBy)
+      
+      const queryString = queryParams.toString()
+      const endpoint = `/complaints${queryString ? `?${queryString}` : ''}`
+      
+      const result = await apiRequest(endpoint)
+      setComplaints(result.data || [])
+      setLoading(false)
+      return result.data || []
+    } catch (err) {
+      setError(err.message)
+      setLoading(false)
+      return []
+    }
+  }, [])
+
+  // Fetch single complaint by ID
+  const fetchComplaintById = useCallback(async (id) => {
+    setLoading(true)
+    setError(null)
+    try {
+      const result = await apiRequest(`/complaints/${id}`)
+      setLoading(false)
+      return result.data
+    } catch (err) {
+      setError(err.message)
+      setLoading(false)
+      return null
+    }
+  }, [])
+
+  // Filter complaints locally (for quick filtering without API call)
+  const filterComplaints = useCallback((tab, filters = {}) => {
+    const uid = auth.user?.id;
+    return complaints.filter(c => {
+      // Tab filtering
+      const submittedId = c.submittedBy?._id || c.submittedBy?.id || c.submittedBy;
+      const assignedId = c.assignedTo?._id || c.assignedTo?.id || c.assignedTo;
+      if (tab === 'my' && submittedId !== uid) return false;
+      if (tab === 'assigned' && assignedId !== uid) return false;
+      // 'all' tab shows everything (admin view)
+
+      // Additional filters
+      if (filters.status && c.status !== filters.status) return false;
+      if (filters.priority && c.priority !== filters.priority) return false;
+      if (filters.category && c.category !== filters.category) return false;
+
+      return true;
+    });
+  }, [complaints, auth.user]);
+
+  // Refresh complaints (re-fetch from API)
+  const refresh = useCallback(() => {
+    return fetchComplaints()
+  }, [fetchComplaints])
+
+  return {
+    complaints,
+    loading,
+    error,
+    fetchComplaints,
+    fetchComplaintById,
+    filterComplaints,
+    refresh,
+    user: auth.user,
+    isAuthenticated: auth.isAuthenticated
   }
-
-  return useMemo(() => ({ ...auth, ...store, filterComplaints }), [auth, store])
 }

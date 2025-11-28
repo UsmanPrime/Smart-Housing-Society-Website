@@ -65,7 +65,7 @@ export default function FacilityCalendar({ month, bookings, onSelectDay, onSelec
               <div className="mt-7 px-2 space-y-1">
                 {cell.dayBookings.slice(0,3).map(b => (
                   <button
-                    key={b.id}
+                    key={b._id}
                     onClick={() => onSelectBooking(b)}
                     className="w-full flex items-center justify-between gap-2 text-left text-[11px] bg-slate-100 hover:bg-slate-200 rounded px-2 py-1"
                     aria-label={`Open booking ${b.title}`}

@@ -10,7 +10,7 @@ const statusCls = (s) =>
 
 export default function BookingDetailModal({ booking, onClose, facilityName }) {
   const { isAdmin, user } = useAuth()
-  const { updateBookingStatus, cancelBooking } = useBookingsStore()
+  const { deleteBooking, approveBooking, rejectBooking } = useBookingsStore()
   const ref = useRef(null)
 
   useEffect(() => {
@@ -21,7 +21,27 @@ export default function BookingDetailModal({ booking, onClose, facilityName }) {
     return () => { document.body.style.overflow = prev; document.removeEventListener('keydown', onKey) }
   }, [onClose])
 
-  const canCancel = (isAdmin || user?.id === booking.createdBy) && booking.status !== 'cancelled'
+  const canCancel = (isAdmin || user?.id === (booking.userId?._id || booking.userId)) && booking.status !== 'cancelled'
+
+  const handleApprove = async () => {
+    await approveBooking(booking._id || booking.id)
+    onClose()
+  }
+
+  const handleReject = async () => {
+    const reason = prompt('Enter rejection reason:')
+    if (reason) {
+      await rejectBooking(booking._id || booking.id, reason)
+      onClose()
+    }
+  }
+
+  const handleCancel = async () => {
+    if (confirm('Are you sure you want to cancel this booking?')) {
+      await deleteBooking(booking._id || booking.id)
+      onClose()
+    }
+  }
 
   return (
     <div className="fixed inset-0 z-[70] bg-black/60 flex items-center justify-center p-4" onMouseDown={(e)=>e.target===e.currentTarget && onClose()}>
@@ -32,25 +52,27 @@ export default function BookingDetailModal({ booking, onClose, facilityName }) {
         </div>
 
         <div className="p-5 space-y-3">
-          <div className="text-lg font-semibold">{booking.title}</div>
-          <div className="text-sm text-gray-700">{facilityName}</div>
+          <div className="text-lg font-semibold">{booking.purpose || 'Booking'}</div>
+          <div className="text-sm text-gray-700">{facilityName || booking.facilityId?.name}</div>
           <div className="text-sm text-gray-700">
-            {new Date(booking.start).toLocaleString()} - {new Date(booking.end).toLocaleTimeString()}
+            {new Date(booking.startTime || booking.start).toLocaleString()} - {new Date(booking.endTime || booking.end).toLocaleTimeString()}
           </div>
           <div className="text-sm">
             Status: <span className={`text-white text-xs px-2 py-0.5 rounded ${statusCls(booking.status)}`}>{booking.status}</span>
           </div>
-          {booking.note && <div className="text-sm text-gray-700">Note: {booking.note}</div>}
+          {booking.notes && <div className="text-sm text-gray-700">Notes: {booking.notes}</div>}
+          {booking.attendees && <div className="text-sm text-gray-700">Attendees: {booking.attendees}</div>}
+          {booking.rejectionReason && <div className="text-sm text-rose-600">Rejection Reason: {booking.rejectionReason}</div>}
 
-          {isAdmin && (
+          {isAdmin && booking.status === 'pending' && (
             <div className="flex gap-2 pt-2">
-              <button onClick={()=>updateBookingStatus(booking.id,'approved')} className="text-xs px-2 py-1 rounded border">Approve</button>
-              <button onClick={()=>updateBookingStatus(booking.id,'rejected')} className="text-xs px-2 py-1 rounded border">Reject</button>
+              <button onClick={handleApprove} className="text-xs px-3 py-1 rounded bg-emerald-600 text-white">Approve</button>
+              <button onClick={handleReject} className="text-xs px-3 py-1 rounded bg-rose-600 text-white">Reject</button>
             </div>
           )}
 
           {canCancel && (
-            <button onClick={()=>{ cancelBooking(booking.id); onClose() }} className="text-xs px-3 py-1 rounded border text-rose-700 border-rose-300">
+            <button onClick={handleCancel} className="text-xs px-3 py-1 rounded border text-rose-700 border-rose-300">
               Cancel Booking
             </button>
           )}

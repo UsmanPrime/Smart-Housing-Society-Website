@@ -4,12 +4,23 @@ import nodemailer from 'nodemailer';
 import dotenv from 'dotenv';
 import bodyParser from 'body-parser';
 import mongoose from 'mongoose';
+import path from 'path';
+import { fileURLToPath } from 'url';
 import authRouter from './routes/auth.js';
 import adminRouter from './routes/admin.js';
 import announcementsRouter from './routes/announcements.js';
 import usersRouter from './routes/users.js';
+import complaintsRouter from './routes/complaints.js';
+import vendorsRouter from './routes/vendors.js';
+import facilitiesRouter from './routes/facilities.js';
+import bookingsRouter from './routes/bookings.js';
+import analyticsRouter from './routes/analytics.js';
+import uploadRouter from './routes/upload.js';
 
 dotenv.config();
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -18,6 +29,9 @@ const PORT = process.env.PORT || 5000;
 app.use(cors());
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
+
+// Serve static files for uploads
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 // Database connection
 async function connectDB() {
@@ -63,6 +77,24 @@ app.use('/api/announcements', announcementsRouter);
 
 // Users (profile) routes
 app.use('/api/users', usersRouter);
+
+// Complaints routes
+app.use('/api/complaints', complaintsRouter);
+
+// Vendors routes
+app.use('/api/vendors', vendorsRouter);
+
+// Facilities routes
+app.use('/api/facilities', facilitiesRouter);
+
+// Bookings routes
+app.use('/api/bookings', bookingsRouter);
+
+// Analytics routes
+app.use('/api/analytics', analyticsRouter);
+
+// Upload routes
+app.use('/api/upload', uploadRouter);
 
 // Contact form submission endpoint
 app.post('/api/contact', async (req, res) => {

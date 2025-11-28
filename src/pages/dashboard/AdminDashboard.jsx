@@ -6,6 +6,19 @@ import Footer from '../../components/Footer';
 import AnnouncementsList from '../../components/AnnouncementsList';
 import BookingLegend from '../../components/facility/BookingLegend';
 import { useBookingsStore } from '../../hooks/useBookingsStore';
+import PaymentVerificationCard from '../../components/Admin/PaymentVerificationCard';
+import ReceiptPreviewModal from '../../components/Admin/ReceiptPreviewModal';
+import PaymentStatusBadge from '../../components/Payment/PaymentStatusBadge';
+import LogsTable from '../../components/AuditLogs/LogsTable';
+import LogFilters from '../../components/AuditLogs/LogFilters';
+import ExportButton from '../../components/AuditLogs/ExportButton';
+import { generateMockLogs, filterLogs, searchInLogs } from '../../components/AuditLogs/logUtils';
+
+import PaymentSummary from '../../components/Reports/PaymentSummary';
+import UserStatistics from '../../components/Reports/UserStatistics';
+import ActivityChart from '../../components/Reports/ActivityChart';
+import PaymentTrendChart from '../../components/Reports/PaymentTrendChart';
+import { buildMockReportData } from '../../components/Reports/reportUtils';
 
 export default function AdminDashboard() {
   const [user, setUser] = useState(null);
@@ -22,6 +35,23 @@ export default function AdminDashboard() {
   const [dateFrom, setDateFrom] = useState('');
   const [dateTo, setDateTo] = useState('');
   const [reasonDlg, setReasonDlg] = useState({ open: false, id: null, action: 'approve' });
+  const [activeComplaints, setActiveComplaints] = useState(0);
+  // Payment management local (mock) state
+  const [paymentRequests, setPaymentRequests] = useState([]);
+  const [payLoading, setPayLoading] = useState(false);
+  const [payError, setPayError] = useState('');
+  const [receiptModal, setReceiptModal] = useState({ open: false, fileUrl: '', filename: '' });
+  const [reportData, setReportData] = useState(null);
+  const [reportsLoading, setReportsLoading] = useState(false);
+
+  // Audit logs state
+  const [logs, setLogs] = useState([]);
+  const [logsFiltered, setLogsFiltered] = useState([]);
+  const [logFilters, setLogFilters] = useState({ from: null, to: null, user: 'all', action: 'all' });
+  const [logSearch, setLogSearch] = useState('');
+  const [logPage, setLogPage] = useState(1);
+  const logPageSize = 10;
+
   const navigate = useNavigate();
 
   const {
@@ -58,6 +88,50 @@ export default function AdminDashboard() {
     fetchPendingUsers();
     fetchAllUsers('resident');
     fetchAllUsers('vendor');
+    fetchActiveComplaintsCount();
+    
+    // Fetch initial bookings for upcoming bookings display
+    refresh({ status: 'pending', limit: 50 });
+    seedAndFetchPayments(); // load mock payment verification data
+
+    // Reports data
+    setReportsLoading(true);
+    setTimeout(() => {
+      setReportData(buildMockReportData());
+      setReportsLoading(false);
+    }, 200);
+
+    // Audit logs data (localStorage seed)
+    const key = 'admin_audit_logs';
+    let stored = localStorage.getItem(key);
+    if (!stored) {
+      localStorage.setItem(key, JSON.stringify(generateMockLogs(100)));
+      stored = localStorage.getItem(key);
+    }
+    setLogs(JSON.parse(stored || '[]'));
+  }, [refresh]);
+  const fetchActiveComplaintsCount = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      const headers = { Authorization: `Bearer ${token}` };
+      const [openRes, inProgRes] = await Promise.all([
+        axios.get('/api/complaints?status=open&limit=1', { headers }),
+        axios.get('/api/complaints?status=in-progress&limit=1', { headers })
+      ]);
+      const openTotal = openRes.data?.pagination?.total || 0;
+      const inProgTotal = inProgRes.data?.pagination?.total || 0;
+      setActiveComplaints(openTotal + inProgTotal);
+    } catch (e) {
+      console.warn('Failed to fetch active complaints count:', e?.message || e);
+    }
+  };
+
+  // Auto-refresh active complaints count every 20 seconds
+  useEffect(() => {
+    const interval = setInterval(() => {
+      fetchActiveComplaintsCount();
+    }, 20000);
+    return () => clearInterval(interval);
   }, []);
 
   const fetchPendingUsers = async () => {
@@ -142,8 +216,8 @@ export default function AdminDashboard() {
       refresh({
         status: statusFilter === 'all' ? undefined : statusFilter,
         facilityId: facilityFilter === 'all' ? undefined : facilityFilter,
-        dateFrom: dateFrom || undefined,
-        dateTo: dateTo || undefined
+        startDate: dateFrom || undefined,
+        endDate: dateTo || undefined
       });
     }
   }, [showAllBookings, facilityFilter, statusFilter, dateFrom, dateTo, refresh]);
@@ -167,16 +241,16 @@ export default function AdminDashboard() {
   const confirmReason = async (reasonText) => {
     if (!reasonDlg.id) return;
     if (reasonDlg.action === 'approve') {
-      await approveBooking(reasonDlg.id, reasonText, user?.id || 'admin1');
+      await approveBooking(reasonDlg.id, reasonText, user?.id);
     } else {
-      await rejectBooking(reasonDlg.id, reasonText, user?.id || 'admin1');
+      await rejectBooking(reasonDlg.id, reasonText, user?.id);
     }
     closeReason();
     refresh({
       status: statusFilter === 'all' ? undefined : statusFilter,
       facilityId: facilityFilter === 'all' ? undefined : facilityFilter,
-      dateFrom: dateFrom || undefined,
-      dateTo: dateTo || undefined
+      startDate: dateFrom || undefined,
+      endDate: dateTo || undefined
     });
   };
 
@@ -215,6 +289,97 @@ export default function AdminDashboard() {
         </div>
       </div>
     );
+  };
+
+  // Mock payment verification seeding / fetching (localStorage only)
+  const seedAndFetchPayments = () => {
+    setPayLoading(true);
+    setPayError('');
+    try {
+      const key = 'admin_mock_payments';
+      let stored = localStorage.getItem(key);
+      if (!stored) {
+        const seed = [
+          {
+            id: 'pay-1',
+            userName: 'John Doe',
+            flat: 'A-302',
+            charge: 'maintenance',
+            amount: 150,
+            paidAt: new Date().toISOString(),
+            receiptUrl: 'https://via.placeholder.com/600x400.png?text=Receipt+1',
+            status: 'pending'
+          },
+          {
+            id: 'pay-2',
+            userName: 'Sara Khan',
+            flat: 'B-104',
+            charge: 'parking',
+            amount: 60,
+            paidAt: new Date(Date.now() - 3600_000).toISOString(),
+            receiptUrl: 'https://via.placeholder.com/600x400.png?text=Receipt+2',
+            status: 'pending'
+          },
+          {
+            id: 'pay-3',
+            userName: 'Lee Wong',
+            flat: 'C-509',
+            charge: 'utility',
+            amount: 90,
+            paidAt: new Date(Date.now() - 7200_000).toISOString(),
+            receiptUrl: 'https://via.placeholder.com/600x400.png?text=Receipt+3',
+            status: 'approved'
+          }
+        ];
+        localStorage.setItem(key, JSON.stringify(seed));
+        stored = JSON.stringify(seed);
+      }
+      const parsed = JSON.parse(stored) || [];
+      setPaymentRequests(parsed);
+    } catch (e) {
+      setPayError('Failed to load payment requests');
+    } finally {
+      setPayLoading(false);
+    }
+  };
+
+  const persistPayments = (next) => {
+    localStorage.setItem('admin_mock_payments', JSON.stringify(next));
+    setPaymentRequests(next);
+  };
+
+  const approvePaymentLocal = (id, remarks = '') => {
+    persistPayments(
+      paymentRequests.map(r =>
+        r.id === id ? { ...r, status: 'approved', adminRemarks: remarks } : r
+      )
+    );
+  };
+
+  const rejectPaymentLocal = (id, remarks = '') => {
+    persistPayments(
+      paymentRequests.map(r =>
+        r.id === id ? { ...r, status: 'rejected', adminRemarks: remarks } : r
+      )
+    );
+  };
+
+  const viewReceiptModal = (fileUrl, filename = 'receipt') =>
+    setReceiptModal({ open: true, fileUrl, filename });
+
+  const closeReceiptModal = () =>
+    setReceiptModal({ open: false, fileUrl: '', filename: '' });
+
+  useEffect(() => {
+    let next = filterLogs(logs, logFilters);
+    if (logSearch.trim()) next = searchInLogs(next, logSearch.trim());
+    setLogsFiltered(next);
+    setLogPage(1);
+  }, [logs, logFilters, logSearch]);
+
+  const scrollToSection = (id) => {
+    const el = document.getElementById(id);
+    if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
   };
 
   return (
@@ -268,7 +433,13 @@ export default function AdminDashboard() {
                   </svg>
                 </div>
               </div>
-              <button className="text-sm text-orange-600 hover:underline">Review now →</button>
+              <button 
+                onClick={() => {
+                  const el = document.querySelector('[data-pending-users]');
+                  if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                }}
+                className="text-sm text-orange-600 hover:underline"
+              >Review now →</button>
             </div>
 
             {/* Active Complaints Card */}
@@ -276,7 +447,7 @@ export default function AdminDashboard() {
               <div className="flex items-center justify-between mb-4">
                 <div>
                   <p className="text-gray-600 text-sm mb-1">Active Complaints</p>
-                  <div className="text-3xl font-bold text-red-600">0</div>
+                  <div className="text-3xl font-bold text-red-600">{activeComplaints}</div>
                 </div>
                 <div className="bg-red-100 p-3 rounded-lg">
                   <svg className="w-8 h-8 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -305,7 +476,7 @@ export default function AdminDashboard() {
                   </svg>
                 </div>
               </div>
-              <p className="text-sm text-gray-500">Current month</p>
+              <p className="text-sm text-gray-500">Coming soon</p>
             </div>
           </div>
 
@@ -326,7 +497,7 @@ export default function AdminDashboard() {
               </div>
               
               <div className="space-y-4">
-                <div className="w-full px-4 py-3 rounded-lg bg-blue-50">
+                <div className="w-full px-4 py-3 rounded-lg bg-blue-50" data-pending-users>
                   <div className="flex items-center justify-between mb-3">
                     <span className="text-ng-blue font-medium">Pending Registrations ({pendingUsers.length})</span>
                   </div>
@@ -508,8 +679,12 @@ export default function AdminDashboard() {
                 onClick={() => navigate('/complaints')}
                 className="p-4 rounded-lg border-2 border-gray-200 hover:border-ng-blue hover:bg-blue-50 transition-all text-center"
               >
-                <svg className="w-8 h-8 mx-auto mb-2 text-ng-blue" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                {/* Chat Bubble Left Right (Heroicons) */}
+                <svg className="w-8 h-8 mx-auto mb-2 text-ng-blue" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                    d="M8.625 12a.375.375 0 11-.75 0 .375.375 0 01.75 0zm4.125 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zm4.125 0a.375.375 0 11-.75 0 .375.375 0 01.75 0z" />
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                    d="M2.25 12c0-4.28 3.47-7.75 7.75-7.75h4c4.28 0 7.75 3.47 7.75 7.75s-3.47 7.75-7.75 7.75H10l-4.5 2.25.75-3.75A7.724 7.724 0 012.25 12z" />
                 </svg>
                 <p className="text-sm font-medium text-gray-700">Manage Complaints</p>
               </button>
@@ -528,17 +703,19 @@ export default function AdminDashboard() {
                 onClick={() => navigate('/facility')}
                 className="p-4 rounded-lg border-2 border-gray-200 hover:border-ng-blue hover:bg-blue-50 transition-all text-center"
               >
-                <svg className="w-8 h-8 mx-auto mb-2 text-ng-blue" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-  {/* calendar icon */}
-  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
-    d="M8 7V3m8 4V3M4 11h16M4 19h16a2 2 0 002-2V7a2 2 0 00-2-2H4a2 2 0 00-2 2v10a2 2 0 002 2z" />
-</svg>
+                {/* Calendar Days (Heroicons) */}
+                <svg className="w-8 h-8 mx-auto mb-2 text-ng-blue" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                    d="M6.75 3v2.25M17.25 3v2.25M3 8.25h18M4.5 7.5h15a1.5 1.5 0 011.5 1.5v10.5A1.5 1.5 0 0119.5 21H4.5A1.5 1.5 0 013 19.5V9A1.5 1.5 0 014.5 7.5z" />
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                    d="M8.25 12h3M12.75 12h3M8.25 15.75h3M12.75 15.75h3" />
+                </svg>
                 <p className="text-sm font-medium text-gray-700">Facility Bookings</p>
               </button>
 
               <button className="p-4 rounded-lg border-2 border-gray-200 hover:border-ng-blue hover:bg-blue-50 transition-all text-center">
                 <svg className="w-8 h-8 mx-auto mb-2 text-ng-blue" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 012 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
                 </svg>
                 <p className="text-sm font-medium text-gray-700">View Reports</p>
               </button>
@@ -546,7 +723,7 @@ export default function AdminDashboard() {
           </div>
 
           {/* Bookings Management */}
-          <div className="bg-white rounded-xl shadow-lg p-6 mt-6">
+          <section id="admin-bookings" className="bg-white rounded-xl shadow-lg p-6 mt-10">
             <div className="flex items-center justify-between mb-6">
               <h2 
                 className="text-2xl font-normal text-ng-blue"
@@ -570,7 +747,7 @@ export default function AdminDashboard() {
                   {upcoming.map(b => (
                     <div key={b.id} className="bg-white p-3 rounded-lg shadow-sm text-sm flex justify-between items-start">
                       <div>
-                        <p className="font-semibold text-gray-900">{b.title}</p>
+                        <p className="font-semibold text-gray-900">{b.purpose || b.title || 'Booking'}</p>
                         <p className="text-gray-600">
                           {facMap[b.facilityId] || b.facilityId} • {new Date(b.start).toLocaleDateString()} {new Date(b.start).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                         </p>
@@ -655,7 +832,7 @@ export default function AdminDashboard() {
                         <tbody>
                           {bookings.map(b => (
                             <tr key={b.id} className="border-t">
-                              <td className="px-4 py-2">{b.title}</td>
+                              <td className="px-4 py-2">{b.purpose || b.title || 'Booking'}</td>
                               <td className="px-4 py-2">{facMap[b.facilityId] || b.facilityId}</td>
                               <td className="px-4 py-2">
                                 {new Date(b.start).toLocaleDateString()}<br />
@@ -699,11 +876,157 @@ export default function AdminDashboard() {
                 )}
               </div>
             </div>
-          </div>
+          </section>
+
+          {/* Visual spacer between boxes */}
+          <div className="my-6" />
+
+          {/* Payment Management (Admin Verification) - Separate box */}
+          <section id="admin-payments" className="bg-white rounded-xl shadow-lg p-6 mt-6">
+            <div className="flex items-center justify-between mb-6">
+              <h2
+                className="text-2xl font-normal text-ng-blue"
+                style={{ fontFamily: "'DM Serif Display', serif" }}
+              >
+                Payment Management
+              </h2>
+              <div className="flex gap-3">
+                <button
+                  onClick={seedAndFetchPayments}
+                  className="px-3 py-2 rounded bg-ng-blue text-white text-sm hover:bg-ng-accent"
+                >
+                  Refresh
+                </button>
+              </div>
+            </div>
+
+            <div className="mb-4 flex flex-wrap gap-4">
+              <div className="px-4 py-3 rounded-lg bg-blue-50 text-sm">
+                Pending: {paymentRequests.filter(r => r.status === 'pending').length}
+              </div>
+              <div className="px-4 py-3 rounded-lg bg-green-50 text-sm">
+                Approved: {paymentRequests.filter(r => r.status === 'approved').length}
+              </div>
+              <div className="px-4 py-3 rounded-lg bg-rose-50 text-sm">
+                Rejected: {paymentRequests.filter(r => r.status === 'rejected').length}
+              </div>
+            </div>
+
+            {payLoading && (
+              <div className="rounded-md border border-blue-200 bg-blue-50 text-blue-700 px-4 py-3 mb-4 text-sm">
+                Loading payment requests…
+              </div>
+            )}
+            {payError && (
+              <div className="rounded-md border border-red-300 bg-red-100 text-red-700 px-4 py-3 mb-4 text-sm">
+                {payError}
+              </div>
+            )}
+
+            {!payLoading && paymentRequests.length === 0 && !payError && (
+              <div className="rounded-md border border-green-300 bg-green-100 text-green-700 px-4 py-3 text-sm">
+                No payment requests.
+              </div>
+            )}
+
+            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+              {paymentRequests
+                .filter(r => r.status !== 'approved')
+                .concat(paymentRequests.filter(r => r.status === 'approved'))
+                .map(req => (
+                  <PaymentVerificationCard
+                    key={req.id}
+                    item={req}
+                    onApprove={approvePaymentLocal}
+                    onReject={rejectPaymentLocal}
+                    onViewReceipt={viewReceiptModal}
+                  />
+                ))}
+            </div>
+          </section>
+
+          {/* Audit Logs - separate box */}
+          <section id="admin-audit-logs" className="bg-white rounded-xl shadow-lg p-6 mt-10">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-2xl font-normal text-ng-blue" style={{ fontFamily: "'DM Serif Display', serif" }}>
+                Audit Logs
+              </h2>
+              <ExportButton logs={logsFiltered} />
+            </div>
+
+            <LogFilters
+              filters={logFilters}
+              setFilters={setLogFilters}
+              onApply={() => {}}
+              onClear={() => { setLogFilters({ from: null, to: null, user: 'all', action: 'all' }); setLogSearch(''); }}
+              search={logSearch}
+              setSearch={setLogSearch}
+            />
+
+            <LogsTable
+              logs={logsFiltered.slice((logPage - 1) * logPageSize, logPage * logPageSize)}
+              highlight={logSearch}
+              page={logPage}
+              totalPages={Math.max(1, Math.ceil(logsFiltered.length / logPageSize))}
+              setPage={setLogPage}
+              sortCallback={(sorted) => setLogsFiltered(sorted)}
+            />
+          </section>
+
+          {/* Reports Snapshot - separate box */}
+          <section id="admin-reports" className="bg-white rounded-xl shadow-lg p-6 mt-10">
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="text-2xl font-normal text-ng-blue" style={{ fontFamily: "'DM Serif Display', serif" }}>
+                Reports Snapshot
+              </h2>
+              <button
+                onClick={() => setReportData(buildMockReportData())}
+                className="px-3 py-2 rounded bg-ng-blue text-white text-sm"
+              >
+                Refresh
+              </button>
+            </div>
+
+            {reportsLoading && <div className="text-sm">Loading metrics…</div>}
+            {!reportsLoading && reportData && (
+              <>
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+                  <PaymentSummary metrics={reportData.payments} />
+                  <UserStatistics metrics={reportData.users} />
+                  <ActivityChart activity={reportData.activity} />
+                </div>
+                <PaymentTrendChart trend={reportData.paymentTrend} />
+              </>
+            )}
+          </section>
+
+          {/* Complaints section (add if not present) */}
+          <section id="admin-complaints" className="bg-white rounded-xl shadow-lg p-6 mt-10">
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="text-2xl font-normal text-ng-blue" style={{ fontFamily: "'DM Serif Display', serif" }}>
+                Complaints Management
+              </h2>
+              <button
+                onClick={() => navigate('/complaints')}
+                className="px-3 py-2 rounded bg-ng-blue text-white text-sm hover:bg-ng-accent"
+              >
+                View All Complaints
+              </button>
+            </div>
+
+            
+          </section>
         </div>
       </main>
       <Footer />
+      {/* Bookings approve/reject reason dialog */}
       <ReasonDialog />
+      <ReceiptPreviewModal
+        isOpen={receiptModal.open}
+        fileUrl={receiptModal.fileUrl}
+        filename={receiptModal.filename}
+        onClose={closeReceiptModal}
+      />
     </div>
   );
 }
