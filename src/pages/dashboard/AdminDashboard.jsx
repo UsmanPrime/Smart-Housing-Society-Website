@@ -9,6 +9,7 @@ import { useBookingsStore } from '../../hooks/useBookingsStore';
 import PaymentVerificationCard from '../../components/Admin/PaymentVerificationCard';
 import ReceiptPreviewModal from '../../components/Admin/ReceiptPreviewModal';
 import PaymentStatusBadge from '../../components/Payment/PaymentStatusBadge';
+
 import LogsTable from '../../components/AuditLogs/LogsTable';
 import LogFilters from '../../components/AuditLogs/LogFilters';
 import ExportButton from '../../components/AuditLogs/ExportButton';
@@ -36,15 +37,18 @@ export default function AdminDashboard() {
   const [dateTo, setDateTo] = useState('');
   const [reasonDlg, setReasonDlg] = useState({ open: false, id: null, action: 'approve' });
   const [activeComplaints, setActiveComplaints] = useState(0);
-  // Payment management local (mock) state
+
+  // Payment management (mock)
   const [paymentRequests, setPaymentRequests] = useState([]);
   const [payLoading, setPayLoading] = useState(false);
   const [payError, setPayError] = useState('');
   const [receiptModal, setReceiptModal] = useState({ open: false, fileUrl: '', filename: '' });
+
+  // Reports snapshot
   const [reportData, setReportData] = useState(null);
   const [reportsLoading, setReportsLoading] = useState(false);
 
-  // Audit logs state
+  // Audit logs
   const [logs, setLogs] = useState([]);
   const [logsFiltered, setLogsFiltered] = useState([]);
   const [logFilters, setLogFilters] = useState({ from: null, to: null, user: 'all', action: 'all' });
