@@ -6,6 +6,7 @@ import bodyParser from 'body-parser';
 import mongoose from 'mongoose';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import logger from './utils/logger.js';
 import authRouter from './routes/auth.js';
 import adminRouter from './routes/admin.js';
 import announcementsRouter from './routes/announcements.js';
@@ -16,6 +17,11 @@ import facilitiesRouter from './routes/facilities.js';
 import bookingsRouter from './routes/bookings.js';
 import analyticsRouter from './routes/analytics.js';
 import uploadRouter from './routes/upload.js';
+import paymentsRouter from './routes/payments.js';
+import auditRouter from './routes/audit.js';
+import reportsRouter from './routes/reports.js';
+import filesRouter from './routes/files.js';
+import { apiLimiter } from './middleware/rateLimiter.js';
 
 dotenv.config();
 
@@ -23,15 +29,24 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const app = express();
+logger.info('Starting server initialization');
 const PORT = process.env.PORT || 5000;
 
 // Middleware
+app.use((req, res, next) => {
+  logger.debug('HTTP Request', { method: req.method, url: req.originalUrl, ip: req.ip });
+  next();
+});
 app.use(cors());
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 
-// Serve static files for uploads
-app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+// Apply rate limiting to all API routes
+app.use('/api/', apiLimiter);
+
+// NOTE: Direct static file serving disabled for security
+// Files are now served through authenticated routes in /api/files
+// app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 // Database connection
 async function connectDB() {
@@ -42,9 +57,9 @@ async function connectDB() {
   }
   try {
     await mongoose.connect(uri);
-    console.log('✅ MongoDB connected successfully!');
+    logger.info('✅ MongoDB connected successfully!');
   } catch (err) {
-    console.error('❌ Database connection failed:', err.message);
+    logger.error('❌ Database connection failed', { error: err.message });
     process.exit(1); // Exit if DB connection fails
   }
 }
@@ -95,6 +110,18 @@ app.use('/api/analytics', analyticsRouter);
 
 // Upload routes
 app.use('/api/upload', uploadRouter);
+
+// Payment routes
+app.use('/api/payments', paymentsRouter);
+
+// Audit routes
+app.use('/api/audit', auditRouter);
+
+// Reports routes
+app.use('/api/reports', reportsRouter);
+
+// Secure file serving routes
+app.use('/api/files', filesRouter);
 
 // Contact form submission endpoint
 app.post('/api/contact', async (req, res) => {
@@ -160,7 +187,7 @@ app.post('/api/contact', async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Error sending email:', error);
+    logger.error('Error sending email', { error: error.message, stack: error.stack });
     res.status(500).json({ 
       success: false, 
       message: 'Failed to send message. Please try again later.' 
@@ -168,7 +195,13 @@ app.post('/api/contact', async (req, res) => {
   }
 });
 
+// Global error handler
+app.use((err, req, res, next) => {
+  logger.error('Unhandled Error', { error: err.message, stack: err.stack });
+  res.status(500).json({ message: 'Internal Server Error' });
+});
+
 // Start server
 app.listen(PORT, () => {
-  console.log(`Server is running on http://localhost:${PORT}`);
+  logger.info(`Server is running on http://localhost:${PORT}`);
 });

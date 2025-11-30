@@ -18,6 +18,9 @@ import VendorComplaintsPage from './pages/VendorComplaints'
 import FacilityPage from './pages/Facility'
 import AuditLogs from "./pages/admin/AuditLogs";
 import ReportsDashboard from "./pages/admin/ReportsDashboard";
+import CreateCharge from "./pages/admin/CreateCharge";
+import PaymentVerification from "./pages/admin/PaymentVerification";
+import PaymentManagement from "./pages/PaymentManagement";
 
 export default function App() {
   return (
@@ -68,8 +71,31 @@ export default function App() {
       />
       <Route path="/vendor/complaints" element={<VendorComplaintsPage />} />
       <Route path="/facilities" element={<FacilityPage />} />
-      <Route path="/admin/audit-logs" element={<AuditLogs />} />
-      <Route path="/admin/reports" element={<ReportsDashboard />} />
+      <Route path="/payment-management" element={
+        <ProtectedRoute allowedRoles={['resident']}>
+          <PaymentManagement />
+        </ProtectedRoute>
+      } />
+      <Route path="/admin/audit-logs" element={
+        <ProtectedRoute allowedRoles={['admin']}>
+          <AuditLogs />
+        </ProtectedRoute>
+      } />
+      <Route path="/admin/reports" element={
+        <ProtectedRoute allowedRoles={['admin']}>
+          <ReportsDashboard />
+        </ProtectedRoute>
+      } />
+      <Route path="/admin/create-charge" element={
+        <ProtectedRoute allowedRoles={['admin']}>
+          <CreateCharge />
+        </ProtectedRoute>
+      } />
+      <Route path="/admin/payment-verification" element={
+        <ProtectedRoute allowedRoles={['admin']}>
+          <PaymentVerification />
+        </ProtectedRoute>
+      } />
     </Routes>
   )
 }

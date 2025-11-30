@@ -1,6 +1,9 @@
 import express from 'express';
 import User from '../models/User.js';
 import Complaint from '../models/Complaint.js';
+import Payout from '../models/Payout.js';
+import Payment from '../models/Payment.js';
+import ResidentDue from '../models/ResidentDue.js';
 import auth, { requireRole } from '../middleware/auth.js';
 
 const router = express.Router();
@@ -302,6 +305,60 @@ router.post('/:vendorId/rate', auth, requireRole('resident'), async (req, res) =
   }
 });
 
+// GET /api/vendors/earnings - vendor earnings summary
+router.get('/earnings', auth, requireRole('vendor'), async (req, res) => {
+  try {
+    const vendorId = req.user.id;
+    // Fetch verified payments tied to dues with this vendor
+    const payments = await Payment.find({ status: 'verified' })
+      .populate({
+        path: 'dueId',
+        match: { vendorId },
+        populate: { path: 'complaintId', select: 'category resolvedAt status' }
+      })
+      .lean();
+
+    const filtered = payments.filter(p => p.dueId && p.dueId.vendorId && p.dueId.vendorId.toString() === vendorId);
+
+    const now = new Date();
+    const startOfToday = new Date(now); startOfToday.setHours(0,0,0,0);
+    const startOfWeek = new Date(now); startOfWeek.setDate(startOfWeek.getDate() - startOfWeek.getDay()); startOfWeek.setHours(0,0,0,0);
+    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+
+    const totalEarnings = filtered.reduce((sum,p)=> sum + (p.vendorShare || 0),0);
+    const todayEarnings = filtered.filter(p=> p.verifiedAt && p.verifiedAt >= startOfToday).reduce((s,p)=>s+(p.vendorShare||0),0);
+    const weekEarnings = filtered.filter(p=> p.verifiedAt && p.verifiedAt >= startOfWeek).reduce((s,p)=>s+(p.vendorShare||0),0);
+    const monthEarnings = filtered.filter(p=> p.verifiedAt && p.verifiedAt >= startOfMonth).reduce((s,p)=>s+(p.vendorShare||0),0);
+
+    // Category breakdown from complaint category
+    const byCategory = filtered.reduce((acc,p)=>{
+      const cat = p.dueId?.complaintId?.category || 'other';
+      acc[cat] = acc[cat] || { count:0, amount:0 };
+      acc[cat].count += 1;
+      acc[cat].amount += (p.vendorShare || 0);
+      return acc;
+    },{});
+
+    // Weekly timeline last 12 weeks using verifiedAt
+    const weeklyTimeline = Array.from({length:12}, (_,i)=>{
+      const end = new Date(startOfWeek); end.setDate(end.getDate() - 7*i);
+      const start = new Date(end); start.setDate(start.getDate()-7);
+      const amount = filtered.filter(p=> p.verifiedAt && p.verifiedAt >= start && p.verifiedAt < end).reduce((s,p)=>s+(p.vendorShare||0),0);
+      return { label: `${start.toLocaleDateString()} - ${end.toLocaleDateString()}`, amount };
+    }).reverse();
+
+    res.json({ success:true, data:{
+      totals:{ total: totalEarnings, today: todayEarnings, week: weekEarnings, month: monthEarnings, jobsCompleted: byCategory ? Object.values(byCategory).reduce((s,c)=>s+c.count,0):0 },
+      breakdown: byCategory,
+      timeline: weeklyTimeline,
+      currency:'PKR'
+    }});
+  } catch (error) {
+    console.error('Error fetching vendor earnings:', error);
+    res.status(500).json({ success: false, message: 'Error fetching earnings', error: error.message });
+  }
+});
+
 // GET /api/vendors/:vendorId/ratings - list ratings (vendor can view own; admin can view all)
 router.get('/:vendorId/ratings', auth, async (req, res) => {
   try {
@@ -390,3 +447,89 @@ router.delete('/services/:index', auth, requireRole('vendor'), async (req, res) 
     res.status(500).json({ success: false, message: 'Error removing service', error: error.message });
   }
 });
+
+// POST /api/vendors/payouts/request - vendor requests payout
+router.post('/payouts/request', auth, requireRole('vendor'), async (req, res) => {
+  try {
+    const { amount, method, notes } = req.body;
+    if (!amount || amount <= 0) {
+      return res.status(400).json({ success: false, message: 'Valid amount is required' });
+    }
+    const payout = await Payout.create({
+      vendorId: req.user.id,
+      amount,
+      method: method || 'bank-transfer',
+      notes,
+      status: 'requested',
+    });
+    res.status(201).json({ success: true, message: 'Payout requested', data: payout });
+  } catch (error) {
+    console.error('Error requesting payout:', error);
+    res.status(500).json({ success: false, message: 'Error requesting payout', error: error.message });
+  }
+});
+
+// GET /api/vendors/payouts/history - vendor payout history
+router.get('/payouts/history', auth, requireRole('vendor'), async (req, res) => {
+  try {
+    const payouts = await Payout.find({ vendorId: req.user.id }).sort({ requestedAt: -1 });
+    res.json({ success: true, data: payouts });
+  } catch (error) {
+    console.error('Error fetching payout history:', error);
+    res.status(500).json({ success: false, message: 'Error fetching payout history', error: error.message });
+  }
+});
+
+// GET /api/vendors/payouts/pending - list pending requests (admin)
+router.get('/payouts/pending', auth, requireRole('admin'), async (req, res) => {
+  try {
+    const pending = await Payout.find({ status: 'requested' }).populate('vendorId', 'name email').sort({ requestedAt: -1 });
+    res.json({ success: true, data: pending });
+  } catch (error) {
+    console.error('Error fetching pending payouts:', error);
+    res.status(500).json({ success: false, message: 'Error fetching pending payouts', error: error.message });
+  }
+});
+
+// PUT /api/vendors/payouts/:id/approve - admin approves payout
+router.put('/payouts/:id/approve', auth, requireRole('admin'), async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { adminComment } = req.body;
+    const payout = await Payout.findById(id);
+    if (!payout || payout.status !== 'requested') {
+      return res.status(400).json({ success: false, message: 'Invalid payout request' });
+    }
+    payout.status = 'approved';
+    payout.adminId = req.user.id;
+    payout.adminComment = adminComment;
+    payout.processedAt = new Date();
+    await payout.save();
+    res.json({ success: true, message: 'Payout approved', data: payout });
+  } catch (error) {
+    console.error('Error approving payout:', error);
+    res.status(500).json({ success: false, message: 'Error approving payout', error: error.message });
+  }
+});
+
+// PUT /api/vendors/payouts/:id/reject - admin rejects payout
+router.put('/payouts/:id/reject', auth, requireRole('admin'), async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { adminComment } = req.body;
+    const payout = await Payout.findById(id);
+    if (!payout || payout.status !== 'requested') {
+      return res.status(400).json({ success: false, message: 'Invalid payout request' });
+    }
+    payout.status = 'rejected';
+    payout.adminId = req.user.id;
+    payout.adminComment = adminComment;
+    payout.processedAt = new Date();
+    await payout.save();
+    res.json({ success: true, message: 'Payout rejected', data: payout });
+  } catch (error) {
+    console.error('Error rejecting payout:', error);
+    res.status(500).json({ success: false, message: 'Error rejecting payout', error: error.message });
+  }
+});
+

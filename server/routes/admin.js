@@ -3,6 +3,7 @@ import User from '../models/User.js';
 import auth from '../middleware/auth.js';
 import sendEmail from '../utils/sendEmail.js';
 import { accountApprovedTemplate, accountRejectedTemplate } from '../utils/emailTemplates.js';
+import { logAction } from '../utils/auditLogger.js';
 
 const router = express.Router();
 
@@ -75,6 +76,22 @@ router.put('/approve/:userId', auth, requireAdmin, async (req, res) => {
     user.status = 'approved';
     await user.save();
 
+    // Log action
+    await logAction({
+      userId: req.user.id,
+      userName: req.user.name,
+      userRole: req.user.role,
+      action: 'USER_APPROVED',
+      resourceType: 'user',
+      resourceId: user._id,
+      details: {
+        userName: user.name,
+        userEmail: user.email,
+        userRole: user.role
+      },
+      req
+    });
+
     // Notify user (best-effort)
     try {
       const { subject, html } = accountApprovedTemplate({ name: user.name });
@@ -119,6 +136,22 @@ router.put('/reject/:userId', auth, requireAdmin, async (req, res) => {
 
     user.status = 'rejected';
     await user.save();
+
+    // Log action
+    await logAction({
+      userId: req.user.id,
+      userName: req.user.name,
+      userRole: req.user.role,
+      action: 'USER_REJECTED',
+      resourceType: 'user',
+      resourceId: user._id,
+      details: {
+        userName: user.name,
+        userEmail: user.email,
+        userRole: user.role
+      },
+      req
+    });
 
     // Notify user (best-effort)
     try {

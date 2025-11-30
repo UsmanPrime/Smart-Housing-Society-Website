@@ -1,10 +1,16 @@
 import React, { useEffect } from "react";
+import { getReceiptImageUrl, isImageUrl, isPdfUrl, downloadFile } from "../../lib/fileUtils";
 
 export default function ReceiptPreviewModal({ isOpen, fileUrl, filename, onClose }) {
   if (!isOpen) return null;
 
-  const isImage = (url = "") => /\.(png|jpe?g|webp|gif)$/i.test(url);
-  const isPdf = (url = "") => /\.pdf$/i.test(url);
+  // Convert database path to authenticated URL if needed
+  const authenticatedUrl = fileUrl?.startsWith('uploads/') 
+    ? getReceiptImageUrl(fileUrl) 
+    : fileUrl;
+
+  const isImage = (url = "") => isImageUrl(url);
+  const isPdf = (url = "") => isPdfUrl(url);
 
   useEffect(() => {
     const esc = (e) => e.key === "Escape" && onClose?.();
@@ -12,14 +18,14 @@ export default function ReceiptPreviewModal({ isOpen, fileUrl, filename, onClose
     return () => window.removeEventListener("keydown", esc);
   }, [onClose]);
 
-  const downloadReceipt = () => {
-    if (!fileUrl) return;
-    const a = document.createElement("a");
-    a.href = fileUrl;
-    a.download = filename || "receipt";
-    a.target = "_blank";
-    a.rel = "noopener";
-    a.click();
+  const downloadReceipt = async () => {
+    if (!authenticatedUrl) return;
+    try {
+      await downloadFile(authenticatedUrl, filename || "receipt");
+    } catch (error) {
+      console.error('Failed to download receipt:', error);
+      alert('Failed to download receipt. Please try again.');
+    }
   };
 
   return (
@@ -46,23 +52,23 @@ export default function ReceiptPreviewModal({ isOpen, fileUrl, filename, onClose
 
         <div className="p-4 flex-1 flex flex-col">
           <div className="h-[65vh] bg-[#f5f6fa] rounded-md overflow-auto flex items-center justify-center">
-            {!fileUrl && <div className="text-[#06164a]">No file to preview.</div>}
-            {fileUrl && isImage(fileUrl) && (
+            {!authenticatedUrl && <div className="text-[#06164a]">No file to preview.</div>}
+            {authenticatedUrl && isImage(authenticatedUrl) && (
               <img
-                src={fileUrl}
+                src={authenticatedUrl}
                 alt="Receipt"
                 className="max-h-[62vh] object-contain"
                 loading="lazy"
               />
             )}
-            {fileUrl && isPdf(fileUrl) && (
+            {authenticatedUrl && isPdf(authenticatedUrl) && (
               <iframe
                 title="Receipt PDF"
-                src={fileUrl}
+                src={authenticatedUrl}
                 className="w-full h-[62vh] rounded-md"
               />
             )}
-            {fileUrl && !isImage(fileUrl) && !isPdf(fileUrl) && (
+            {authenticatedUrl && !isImage(authenticatedUrl) && !isPdf(authenticatedUrl) && (
               <div className="text-[#06164a] text-sm px-4">
                 Unsupported format. Download to view.
               </div>

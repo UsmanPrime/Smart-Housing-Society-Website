@@ -57,7 +57,7 @@ const complaintSchema = new mongoose.Schema({
   status: {
     type: String,
     enum: {
-      values: ['open', 'in-progress', 'completed', 'resolved', 'closed'],
+      values: ['open', 'in-progress', 'completed', 'resolved', 'closed', 'payment-due'],
       message: '{VALUE} is not a valid status'
     },
     default: 'open'
@@ -81,6 +81,20 @@ const complaintSchema = new mongoose.Schema({
     type: Date,
     default: null
   }
+  ,
+  // When admin verifies completed work and issues payment due
+  verificationComment: {
+    type: String,
+    trim: true,
+    maxlength: [500, 'Verification comment cannot exceed 500 characters']
+  },
+  verifiedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null },
+  verifiedAt: { type: Date, default: null },
+  // Distribution amounts once paid
+  totalPaymentAmount: { type: Number, default: 0 },
+  vendorShare: { type: Number, default: 0 },
+  adminShare: { type: Number, default: 0 },
+  paymentId: { type: mongoose.Schema.Types.ObjectId, ref: 'Payment', default: null }
 }, {
   timestamps: true // Automatically adds createdAt and updatedAt
 });

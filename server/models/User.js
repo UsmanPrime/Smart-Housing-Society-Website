@@ -7,6 +7,8 @@ const userSchema = new mongoose.Schema(
     passwordHash: { type: String, required: true },
     phone: { type: String },
     role: { type: String, enum: ['resident', 'vendor', 'admin'], default: 'resident' },
+    twoFAEnabled: { type: Boolean, default: false },
+    twoFASecret: { type: String, select: false },
     status: { type: String, enum: ['pending', 'approved', 'rejected'], default: 'pending' },
     // Password reset (OTP) fields
     resetOtpHash: { type: String },

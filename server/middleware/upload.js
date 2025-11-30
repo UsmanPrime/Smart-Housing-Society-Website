@@ -6,19 +6,23 @@ import { fileURLToPath } from 'url';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// Ensure upload directory exists
-const uploadDir = path.join(__dirname, '../../uploads/complaints');
-if (!fs.existsSync(uploadDir)) {
-  fs.mkdirSync(uploadDir, { recursive: true });
+// Ensure upload directories exist
+const complaintsDir = path.join(__dirname, '../../uploads/complaints');
+const receiptsDir = path.join(__dirname, '../../uploads/receipts');
+
+if (!fs.existsSync(complaintsDir)) {
+  fs.mkdirSync(complaintsDir, { recursive: true });
+}
+if (!fs.existsSync(receiptsDir)) {
+  fs.mkdirSync(receiptsDir, { recursive: true });
 }
 
-// Configure storage
-const storage = multer.diskStorage({
+// Configure storage for complaints
+const complaintsStorage = multer.diskStorage({
   destination: function (req, file, cb) {
-    cb(null, uploadDir);
+    cb(null, complaintsDir);
   },
   filename: function (req, file, cb) {
-    // Generate unique filename: timestamp-randomstring-originalname
     const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
     const ext = path.extname(file.originalname);
     const nameWithoutExt = path.basename(file.originalname, ext);
@@ -26,8 +30,21 @@ const storage = multer.diskStorage({
   }
 });
 
+// Configure storage for receipts
+const receiptsStorage = multer.diskStorage({
+  destination: function (req, file, cb) {
+    cb(null, receiptsDir);
+  },
+  filename: function (req, file, cb) {
+    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+    const ext = path.extname(file.originalname);
+    const nameWithoutExt = path.basename(file.originalname, ext);
+    cb(null, `receipt-${uniqueSuffix}${ext}`);
+  }
+});
+
 // File filter - accept only images
-const fileFilter = (req, file, cb) => {
+const imageFilter = (req, file, cb) => {
   const allowedTypes = /jpeg|jpg|png|gif|webp/;
   const extname = allowedTypes.test(path.extname(file.originalname).toLowerCase());
   const mimetype = allowedTypes.test(file.mimetype);
@@ -39,20 +56,45 @@ const fileFilter = (req, file, cb) => {
   }
 };
 
-// Configure multer
-const upload = multer({
-  storage: storage,
+// File filter - accept images and PDFs
+const receiptFilter = (req, file, cb) => {
+  const allowedTypes = /jpeg|jpg|png|gif|webp|pdf/;
+  const extname = allowedTypes.test(path.extname(file.originalname).toLowerCase());
+  const mimetype = /jpeg|jpg|png|gif|webp|pdf/.test(file.mimetype);
+
+  if (extname && mimetype) {
+    return cb(null, true);
+  } else {
+    cb(new Error('Only image files (jpeg, jpg, png, gif, webp) or PDF are allowed'));
+  }
+};
+
+// Configure multer for complaints
+const complaintsUpload = multer({
+  storage: complaintsStorage,
   limits: {
     fileSize: 5 * 1024 * 1024, // 5MB max file size
   },
-  fileFilter: fileFilter
+  fileFilter: imageFilter
 });
 
-// Middleware for single file upload
-export const uploadSingle = upload.single('image');
+// Configure multer for receipts
+const receiptsUpload = multer({
+  storage: receiptsStorage,
+  limits: {
+    fileSize: 5 * 1024 * 1024, // 5MB max file size
+  },
+  fileFilter: receiptFilter
+});
 
-// Middleware for multiple files upload
-export const uploadMultiple = upload.array('images', 5); // Max 5 images
+// Middleware for single complaint image upload
+export const uploadSingle = complaintsUpload.single('image');
+
+// Middleware for multiple complaint images upload
+export const uploadMultiple = complaintsUpload.array('images', 5); // Max 5 images
+
+// Middleware for receipt upload
+export const uploadReceipt = receiptsUpload.single('receipt');
 
 // Error handler middleware for multer errors
 export const handleUploadError = (err, req, res, next) => {
@@ -88,5 +130,6 @@ export const handleUploadError = (err, req, res, next) => {
 export default {
   uploadSingle,
   uploadMultiple,
+  uploadReceipt,
   handleUploadError
 };

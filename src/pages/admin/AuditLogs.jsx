@@ -4,56 +4,89 @@ import Footer from "../../components/Footer";
 import LogsTable from "../../components/AuditLogs/LogsTable";
 import LogFilters from "../../components/AuditLogs/LogFilters";
 import ExportButton from "../../components/AuditLogs/ExportButton";
-import { generateMockLogs, filterLogs, searchInLogs } from "../../components/AuditLogs/logUtils";
-
-const STORAGE_KEY = "admin_audit_logs";
+import { api } from "../../lib/api";
 
 export default function AuditLogs() {
   const [logs, setLogs] = useState([]);
-  const [filtered, setFiltered] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
   const [filters, setFilters] = useState({ from: null, to: null, user: "all", action: "all" });
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
-  const pageSize = 15;
+  const [totalPages, setTotalPages] = useState(1);
+  const pageSize = 50;
 
-  const fetchAuditLogs = useCallback(() => {
+  const fetchAuditLogs = useCallback(async () => {
     setLoading(true);
-    let stored = localStorage.getItem(STORAGE_KEY);
-    if (!stored) {
-      const seed = generateMockLogs(120);
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(seed));
-      stored = JSON.stringify(seed);
-    }
-    const parsed = JSON.parse(stored) || [];
-    setLogs(parsed);
-    setLoading(false);
-  }, []);
+    setError("");
+    try {
+      const params = new URLSearchParams();
+      if (filters.from) params.append("from", filters.from);
+      if (filters.to) params.append("to", filters.to);
+      if (filters.user && filters.user !== "all") params.append("userId", filters.user);
+      if (filters.action && filters.action !== "all") params.append("action", filters.action);
+      if (search.trim()) params.append("search", search.trim());
+      params.append("page", page.toString());
+      params.append("limit", pageSize.toString());
 
-  const applyFilters = useCallback(() => {
-    let next = filterLogs(logs, filters);
-    if (search.trim()) next = searchInLogs(next, search.trim());
-    setFiltered(next);
+      const url = `/api/audit/logs?${params.toString()}`;
+      const response = await api.get(url);
+      
+      if (response.success) {
+        setLogs(response.logs || []);
+        setTotalPages(response.totalPages || 1);
+      }
+    } catch (err) {
+      console.error("Error fetching audit logs:", err);
+      setError(err.message || "Failed to load audit logs");
+    } finally {
+      setLoading(false);
+    }
+  }, [filters, search, page]);
+
+  const applyFilters = () => {
     setPage(1);
-  }, [logs, filters, search]);
+    fetchAuditLogs();
+  };
 
   const clearFilters = () => {
     setFilters({ from: null, to: null, user: "all", action: "all" });
     setSearch("");
+    setPage(1);
   };
 
   useEffect(() => {
     fetchAuditLogs();
   }, [fetchAuditLogs]);
 
-  useEffect(() => {
-    applyFilters();
-  }, [applyFilters]);
-
-  const pageLogs = filtered.slice((page - 1) * pageSize, page * pageSize);
-  const totalPages = Math.ceil(filtered.length / pageSize) || 1;
-
   const handleSearch = (val) => setSearch(val);
+  
+  const handleExport = async () => {
+    try {
+      const params = new URLSearchParams();
+      if (filters.from) params.append("from", filters.from);
+      if (filters.to) params.append("to", filters.to);
+      if (filters.user && filters.user !== "all") params.append("userId", filters.user);
+      if (filters.action && filters.action !== "all") params.append("action", filters.action);
+      if (search.trim()) params.append("search", search.trim());
+
+      const url = `/api/audit/export?${params.toString()}`;
+      const blob = await api.get(url);
+      
+      // Create download link
+      const downloadUrl = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = downloadUrl;
+      a.download = `audit-logs-${new Date().toISOString().split('T')[0]}.csv`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(downloadUrl);
+      document.body.removeChild(a);
+    } catch (err) {
+      console.error("Export error:", err);
+      alert(err.message || "Failed to export logs");
+    }
+  };
 
   return (
     <div className="min-h-screen flex flex-col bg-[#c3c5ce]">
@@ -76,25 +109,32 @@ export default function AuditLogs() {
               setSearch={handleSearch}
             />
 
+            {error && (
+              <div className="rounded-md border border-red-400 bg-red-100 text-red-800 px-4 py-3 mb-6">
+                {error}
+              </div>
+            )}
+
             <div className="flex items-center justify-between mb-4">
               <p className="text-sm text-[#06164a]">
                 {loading
                   ? "Loading logs..."
-                  : `Showing ${filtered.length} log entr${filtered.length === 1 ? "y" : "ies"}`}
+                  : `Showing ${logs.length} log entr${logs.length === 1 ? "y" : "ies"}`}
               </p>
-              <ExportButton logs={filtered} />
+              <button
+                onClick={handleExport}
+                className="px-4 py-2 rounded-md bg-[#06164a] text-white hover:bg-[#0f335b]"
+              >
+                Export CSV
+              </button>
             </div>
 
             <LogsTable
-              logs={pageLogs}
+              logs={logs}
               highlight={search}
               page={page}
               totalPages={totalPages}
               setPage={setPage}
-              sortCallback={(sorted) => {
-                setFiltered(sorted);
-                setPage(1);
-              }}
             />
         </div>
       </main>

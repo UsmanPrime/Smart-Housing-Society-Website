@@ -1,29 +1,29 @@
 import React, { useEffect, useState, useCallback } from "react";
 import Navbar from "../../components/Navbar";
 import Footer from "../../components/Footer";
-import axios from "axios";
+import { api } from "../../lib/api";
 import PaymentVerificationCard from "../../components/Admin/PaymentVerificationCard";
 import ReceiptPreviewModal from "../../components/Admin/ReceiptPreviewModal";
-
-const API_BASE =
-  import.meta?.env?.VITE_API_BASE_URL ||
-  process.env.REACT_APP_API_BASE_URL ||
-  "";
 
 export default function PaymentVerification() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [requests, setRequests] = useState([]);
   const [preview, setPreview] = useState({ open: false, fileUrl: "", filename: "" });
+  const [successMessage, setSuccessMessage] = useState("");
 
   const fetchPendingPayments = useCallback(async () => {
     setLoading(true);
     setError("");
+    setSuccessMessage("");
     try {
-      const res = await axios.get(`${API_BASE}/admin/payments/pending`);
-      setRequests(res.data || []);
-    } catch (e) {
-      setError("Failed to load pending payments.");
+      const response = await api.get("/api/payments/receipts/pending");
+      if (response.success) {
+        setRequests(response.payments || []);
+      }
+    } catch (err) {
+      console.error("Error fetching pending payments:", err);
+      setError(err.message || "Failed to load pending payments.");
     } finally {
       setLoading(false);
     }
@@ -31,19 +31,35 @@ export default function PaymentVerification() {
 
   const approvePayment = async (id, remarks = "") => {
     try {
-      await axios.post(`${API_BASE}/admin/payments/${id}/approve`, { remarks });
-      setRequests((prev) => prev.filter((r) => r.id !== id));
-    } catch (e) {
-      alert("Approve failed. Please try again.");
+      const response = await api.put(`/api/payments/verification/verify/${id}`, { remarks });
+      if (response.success) {
+        setRequests((prev) => prev.filter((r) => r._id !== id));
+        setSuccessMessage("Payment verified successfully!");
+        setTimeout(() => setSuccessMessage(""), 3000);
+      }
+    } catch (err) {
+      console.error("Approve error:", err);
+      alert(err.message || "Approve failed. Please try again.");
     }
   };
 
-  const rejectPayment = async (id, remarks = "") => {
+  const rejectPayment = async (id, reason) => {
+    if (!reason || !reason.trim()) {
+      alert("Please provide a rejection reason.");
+      return;
+    }
     try {
-      await axios.post(`${API_BASE}/admin/payments/${id}/reject`, { remarks });
-      setRequests((prev) => prev.filter((r) => r.id !== id));
-    } catch (e) {
-      alert("Reject failed. Please try again.");
+      const response = await api.put(`/api/payments/verification/reject/${id}`, { 
+        rejectionReason: reason 
+      });
+      if (response.success) {
+        setRequests((prev) => prev.filter((r) => r._id !== id));
+        setSuccessMessage("Payment rejected successfully!");
+        setTimeout(() => setSuccessMessage(""), 3000);
+      }
+    } catch (err) {
+      console.error("Reject error:", err);
+      alert(err.message || "Reject failed. Please try again.");
     }
   };
 
@@ -87,6 +103,12 @@ export default function PaymentVerification() {
             </div>
           )}
 
+          {successMessage && (
+            <div className="rounded-md border border-green-400 bg-green-100 text-green-800 px-4 py-3 mb-6">
+              {successMessage}
+            </div>
+          )}
+
           {!loading && requests.length === 0 && !error && (
             <div className="rounded-md border border-green-400 bg-green-100 text-green-800 px-4 py-3">
               No pending payments to verify.
@@ -96,7 +118,7 @@ export default function PaymentVerification() {
           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
             {requests.map((req) => (
               <PaymentVerificationCard
-                key={req.id}
+                key={req._id}
                 item={req}
                 onApprove={approvePayment}
                 onReject={rejectPayment}

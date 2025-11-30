@@ -22,9 +22,14 @@
     "jsonwebtoken": "^9.0.2",
     "mongoose": "^8.8.1",
     "multer": "^2.0.2",
-    "nodemailer": "^6.10.1"
+    "nodemailer": "^6.10.1",
+    "clamscan": "^2.0.6",
+    "qrcode": "^1.5.3",
+    "speakeasy": "^2.0.0",
+    "winston": "^3.10.0"
   },
   "devDependencies": {
     "nodemon": "^3.0.1"
   }
 }
+

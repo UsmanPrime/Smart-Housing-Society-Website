@@ -3,6 +3,7 @@ import { body, validationResult } from 'express-validator';
 import bcrypt from 'bcryptjs';
 import auth from '../middleware/auth.js';
 import User from '../models/User.js';
+import { logAction } from '../utils/auditLogger.js';
 
 const router = express.Router();
 
@@ -56,6 +57,19 @@ router.put(
       }
 
       await user.save();
+      
+      // Log profile update
+      await logAction('PROFILE_UPDATED', user._id, user.name, user.role, {
+        userId: user._id,
+        resourceType: 'user',
+        resourceId: user._id.toString(),
+        details: { 
+          updatedFields: Object.keys(req.body),
+          passwordChanged: !!newPassword 
+        },
+        ip: req.ip || req.headers['x-forwarded-for'] || req.connection.remoteAddress
+      });
+      
       const safeUser = await User.findById(user._id).select('-passwordHash');
       res.json({ success: true, message: 'Profile updated', user: safeUser });
     } catch (err) {

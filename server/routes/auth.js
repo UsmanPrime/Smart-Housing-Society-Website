@@ -6,12 +6,17 @@ import crypto from 'crypto';
 import User from '../models/User.js';
 import sendEmail from '../utils/sendEmail.js';
 import { registrationPendingTemplate, resetOtpTemplate } from '../utils/emailTemplates.js';
+import { logAction } from '../utils/auditLogger.js';
+import { authLimiter } from '../middleware/rateLimiter.js';
+import speakeasy from 'speakeasy';
+import qrcode from 'qrcode';
 
 const router = Router();
 
 // POST /api/auth/register
 router.post(
   '/register',
+  authLimiter,
   [
     body('name').trim().notEmpty().withMessage('Name is required'),
     body('email').isEmail().withMessage('Valid email is required'),
@@ -64,9 +69,11 @@ router.post(
 // POST /api/auth/login
 router.post(
   '/login',
+  authLimiter,
   [
     body('email').isEmail().withMessage('Valid email is required'),
-    body('password').notEmpty().withMessage('Password is required')
+    body('password').notEmpty().withMessage('Password is required'),
+    body('totp').optional().isString()
   ],
   async (req, res) => {
     const errors = validationResult(req);
@@ -103,8 +110,34 @@ router.post(
         return res.status(401).json({ success: false, message: 'Invalid credentials' });
       }
 
+      // If admin has 2FA enabled, require TOTP verification
+      if (user.role === 'admin' && user.twoFAEnabled) {
+        const { totp } = req.body;
+        if (!totp) {
+          return res.status(401).json({ success: false, message: 'Two-factor code required', require2FA: true });
+        }
+        const verified = speakeasy.totp.verify({
+          secret: user.twoFASecret,
+          encoding: 'base32',
+          token: totp,
+          window: 1,
+        });
+        if (!verified) {
+          return res.status(401).json({ success: false, message: 'Invalid two-factor code' });
+        }
+      }
+
       const payload = { id: user._id, email: user.email, role: user.role };
       const token = jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: process.env.JWT_EXPIRES || '7d' });
+
+      // Log successful login
+      await logAction('USER_LOGIN', user._id, user.name, user.role, {
+        userId: user._id,
+        resourceType: 'user',
+        resourceId: user._id.toString(),
+        details: { email: user.email },
+        ip: req.ip || req.headers['x-forwarded-for'] || req.connection.remoteAddress
+      });
 
       return res.json({
         success: true,
@@ -118,6 +151,70 @@ router.post(
     }
   }
 );
+
+// ----------------------
+// Admin 2FA (TOTP)
+// ----------------------
+
+// POST /api/auth/2fa/setup - generate secret and QR
+router.post('/2fa/setup', authLimiter, async (req, res) => {
+  try {
+    const { email } = req.body;
+    const user = await User.findOne({ email: email.toLowerCase() });
+    if (!user || user.role !== 'admin') {
+      return res.status(403).json({ success: false, message: 'Only admin accounts can enable 2FA' });
+    }
+    const secret = speakeasy.generateSecret({ name: 'Smart Housing Society (Admin)' });
+    const otpauth = secret.otpauth_url;
+    const qrDataUrl = await qrcode.toDataURL(otpauth);
+    // Store secret temporarily; will be finalized on enable
+    user.twoFASecret = secret.base32;
+    await user.save();
+    return res.json({ success: true, secret: secret.base32, qr: qrDataUrl });
+  } catch (err) {
+    console.error('2FA setup error:', err);
+    return res.status(500).json({ success: false, message: 'Server error' });
+  }
+});
+
+// POST /api/auth/2fa/enable - verify TOTP and enable
+router.post('/2fa/enable', authLimiter, async (req, res) => {
+  try {
+    const { email, totp } = req.body;
+    const user = await User.findOne({ email: email.toLowerCase() }).select('+twoFASecret');
+    if (!user || user.role !== 'admin' || !user.twoFASecret) {
+      return res.status(400).json({ success: false, message: '2FA not initialized' });
+    }
+    const ok = speakeasy.totp.verify({ secret: user.twoFASecret, encoding: 'base32', token: totp, window: 1 });
+    if (!ok) {
+      return res.status(400).json({ success: false, message: 'Invalid two-factor code' });
+    }
+    user.twoFAEnabled = true;
+    await user.save();
+    return res.json({ success: true, message: 'Two-factor authentication enabled' });
+  } catch (err) {
+    console.error('2FA enable error:', err);
+    return res.status(500).json({ success: false, message: 'Server error' });
+  }
+});
+
+// POST /api/auth/2fa/disable - disable 2FA
+router.post('/2fa/disable', authLimiter, async (req, res) => {
+  try {
+    const { email } = req.body;
+    const user = await User.findOne({ email: email.toLowerCase() });
+    if (!user || user.role !== 'admin') {
+      return res.status(403).json({ success: false, message: 'Only admin accounts can disable 2FA' });
+    }
+    user.twoFAEnabled = false;
+    user.twoFASecret = undefined;
+    await user.save();
+    return res.json({ success: true, message: 'Two-factor authentication disabled' });
+  } catch (err) {
+    console.error('2FA disable error:', err);
+    return res.status(500).json({ success: false, message: 'Server error' });
+  }
+});
 
 // ----------------------
 // Forgot/Reset Password
@@ -164,6 +261,7 @@ router.post('/test-email', async (req, res) => {
 // POST /api/auth/forgot-password
 router.post(
   '/forgot-password',
+  authLimiter,
   [body('email').isEmail().withMessage('Valid email is required')],
   async (req, res) => {
     const errors = validationResult(req);
@@ -215,6 +313,7 @@ router.post(
 // POST /api/auth/verify-otp
 router.post(
   '/verify-otp',
+  authLimiter,
   [
     body('email').isEmail().withMessage('Valid email is required'),
     body('otp').isLength({ min: 4 }).withMessage('OTP is required'),
@@ -249,6 +348,7 @@ router.post(
 // POST /api/auth/reset-password
 router.post(
   '/reset-password',
+  authLimiter,
   [
     body('email').isEmail().withMessage('Valid email is required'),
     body('otp').isLength({ min: 4 }).withMessage('OTP is required'),
@@ -277,6 +377,15 @@ router.post(
       user.resetOtpHash = undefined;
       user.resetOtpExpires = undefined;
       await user.save();
+
+      // Log password reset
+      await logAction('PASSWORD_RESET', user._id, user.name, user.role, {
+        userId: user._id,
+        resourceType: 'user',
+        resourceId: user._id.toString(),
+        details: { email: user.email },
+        ip: req.ip || req.headers['x-forwarded-for'] || req.connection.remoteAddress
+      });
 
       res.json({ success: true, message: 'Password updated successfully' });
     } catch (err) {

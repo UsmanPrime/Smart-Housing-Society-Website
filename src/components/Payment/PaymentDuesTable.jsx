@@ -1,14 +1,33 @@
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useState } from "react";
 import PaymentCard from "./PaymentCard";
+import { api } from "../../lib/api";
 
 export default function PaymentDuesTable({ onPayNow }) {
   const [filter, setFilter] = useState("all");
   const [sortBy, setSortBy] = useState("dueDate"); // 'dueDate' | 'amount'
-  const dues = useMemo(() => [
-    { id: 1, title: "Maintenance - November", amount: 150, dueDate: "2025-12-05", status: "pending" },
-    { id: 2, title: "Parking Fee - Q4", amount: 60, dueDate: "2025-12-10", status: "pending" },
-    { id: 3, title: "Utility - October", amount: 90, dueDate: "2025-11-15", status: "overdue" },
-  ], []);
+  const [dues, setDues] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+
+  // Fetch dues from API
+  useEffect(() => {
+    const fetchDues = async () => {
+      setLoading(true);
+      setError("");
+      try {
+        const response = await api.get("/api/payments/dues/my-dues");
+        if (response.success) {
+          setDues(response.dues || []);
+        }
+      } catch (err) {
+        console.error("Error fetching dues:", err);
+        setError(err.message || "Failed to load payment dues");
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchDues();
+  }, []);
 
   const filtered = dues.filter(d => filter === "all" ? true : d.status === filter);
   const sorted = [...filtered].sort((a,b) => {
@@ -18,6 +37,14 @@ export default function PaymentDuesTable({ onPayNow }) {
 
   return (
     <div className="space-y-4">
+      {loading && <div className="text-center text-[#06164a] py-6">Loading dues...</div>}
+      {error && (
+        <div className="rounded-md border border-red-400 bg-red-100 text-red-800 px-4 py-3">
+          {error}
+        </div>
+      )}
+      {!loading && !error && (
+        <>
       <div className="flex flex-wrap gap-3 items-center">
         <label className="text-[#06164a]">Filter:</label>
         <select
@@ -96,6 +123,8 @@ export default function PaymentDuesTable({ onPayNow }) {
           <div className="text-center text-[#06164a] py-6">No dues found.</div>
         )}
       </div>
+      </>
+      )}
     </div>
   );
 }

@@ -3,6 +3,8 @@ import Complaint from '../models/Complaint.js';
 import User from '../models/User.js';
 import auth, { requireRole } from '../middleware/auth.js';
 import { notifyComplaintAssignment } from '../utils/notificationService.js';
+import ResidentDue from '../models/ResidentDue.js';
+import Charge from '../models/Charge.js';
 
 const router = express.Router();
 
@@ -396,3 +398,74 @@ router.put('/:id/assign', auth, requireRole('admin'), async (req, res) => {
 });
 
 export default router;
+
+// PUT /api/complaints/:id/verify-completion - Admin verifies vendor completion and issues payment due
+router.put('/:id/verify-completion', auth, requireRole('admin'), async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { amount, comment, dueInDays = 7 } = req.body;
+    if (!amount || amount <= 0) {
+      return res.status(400).json({ success: false, message: 'Valid amount is required' });
+    }
+    const complaint = await Complaint.findById(id).populate('submittedBy', 'name email houseNumber').populate('assignedTo','_id');
+    if (!complaint) {
+      return res.status(404).json({ success: false, message: 'Complaint not found' });
+    }
+    if (complaint.status !== 'completed') {
+      return res.status(400).json({ success: false, message: 'Complaint must be completed by vendor before verification' });
+    }
+    // Calculate shares
+    const vendorShare = Math.round(amount * 0.70);
+    const adminShare = amount - vendorShare;
+
+    // Create a transient charge (optional grouping) or reuse existing logic; minimal charge
+    const charge = await Charge.create({
+      title: `Complaint #${complaint._id.toString().slice(-6)} Payment`,
+      description: `Payment for resolved complaint '${complaint.title}'`,
+      amount,
+      chargeMonth: `${new Date().getFullYear()}-${String(new Date().getMonth()+1).padStart(2,'0')}`,
+      createdBy: req.user.id
+    });
+
+    // Create resident due linked to complaint
+    const dueDate = new Date();
+    dueDate.setDate(dueDate.getDate() + parseInt(dueInDays));
+    const due = await ResidentDue.create({
+      chargeId: charge._id,
+      complaintId: complaint._id,
+      vendorId: complaint.assignedTo?._id || null,
+      residentId: complaint.submittedBy._id,
+      residentName: complaint.submittedBy.name,
+      houseNumber: complaint.submittedBy.houseNumber || 'N/A',
+      email: complaint.submittedBy.email,
+      amount,
+      adminShare,
+      vendorShare,
+      dueDate
+    });
+
+    // Update complaint status and verification metadata
+    complaint.status = 'payment-due';
+    complaint.verificationComment = comment;
+    complaint.verifiedBy = req.user.id;
+    complaint.verifiedAt = new Date();
+    complaint.totalPaymentAmount = amount;
+    complaint.vendorShare = vendorShare;
+    complaint.adminShare = adminShare;
+    complaint.comments.push({
+      text: `Admin verified completion. Payment due created (Amount: ${amount}, Vendor Share: ${vendorShare}, Admin Share: ${adminShare}).`,
+      author: req.user.id,
+      authorName: req.user.name || 'Admin'
+    });
+    await complaint.save();
+
+    res.json({
+      success: true,
+      message: 'Complaint verified and payment due issued',
+      data: { complaint, due }
+    });
+  } catch (error) {
+    console.error('Error verifying complaint completion:', error);
+    res.status(500).json({ success: false, message: 'Error verifying completion', error: error.message });
+  }
+});
