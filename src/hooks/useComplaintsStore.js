@@ -1,6 +1,6 @@
 import { useCallback, useState } from 'react'
 
-const API_BASE = '/api'
+import { API_BASE } from '../lib/api';
 
 // Helper function to get auth token from localStorage
 const getAuthToken = () => {

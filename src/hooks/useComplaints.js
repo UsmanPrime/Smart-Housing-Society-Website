@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useMemo } from 'react'
 import useAuth from './useAuth'
 
-const API_BASE = '/api'
+import { API_BASE } from '../lib/api';
 
 // Helper function to get auth token
 const getAuthToken = () => {
