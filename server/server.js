@@ -44,6 +44,7 @@ const corsOptions = {
     'http://localhost:3000',
     'http://localhost:5173',
     'https://smart-housing-society.vercel.app',
+    'https://nextgen-residency.onrender.com',
     process.env.FRONTEND_URL || 'https://smart-housing-society.vercel.app'
   ],
   credentials: true,
