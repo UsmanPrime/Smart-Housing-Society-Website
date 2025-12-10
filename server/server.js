@@ -37,7 +37,22 @@ app.use((req, res, next) => {
   logger.debug('HTTP Request', { method: req.method, url: req.originalUrl, ip: req.ip });
   next();
 });
-app.use(cors());
+
+// Configure CORS for production
+const corsOptions = {
+  origin: [
+    'http://localhost:3000',
+    'http://localhost:5173',
+    'https://smart-housing-society.vercel.app',
+    process.env.FRONTEND_URL || 'https://smart-housing-society.vercel.app'
+  ],
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
+  optionsSuccessStatus: 200
+};
+
+app.use(cors(corsOptions));
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 
