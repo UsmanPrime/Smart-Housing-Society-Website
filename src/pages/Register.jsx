@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
-import axios from 'axios'
-import Navbar from '../components/Navbar'
+import { Link, useNavigate } from 'react-router-dom';
+import { useEffect, useState } from 'react';
+import axios from 'axios';
+import { API_BASE } from '../lib/api';
 import Footer from '../components/Footer'
 import recaptchaIcon from '../assets/RecaptchaLogo.svg.png'
 import loginImg from '../assets/register.jpg'
@@ -77,7 +78,6 @@ export default function Register() {
 
     setLoading(true)
     try {
-      const API_BASE = (import.meta?.env?.VITE_API_BASE_URL || '').trim()
       const url = `${API_BASE}/api/auth/register`
       const payload = {
         name,

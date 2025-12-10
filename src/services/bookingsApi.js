@@ -1,6 +1,7 @@
-// Use relative path to leverage Vite's proxy in development
-// In production, this should point to your actual API server
-const BASE = import.meta.env.PROD ? 'http://localhost:5000/api' : '/api';
+import { API_BASE } from '../lib/api';
+
+// Use shared API base (includes Render fallback) and append /api here
+const BASE = `${API_BASE}/api`;
 
 async function api(url, opts = {}) {
   const token = localStorage.getItem('token');

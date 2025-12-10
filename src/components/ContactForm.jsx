@@ -154,7 +154,7 @@ export default function ContactForm() {
               type="tel"
               name="phone"
               value={formData.phone}
-              onChange={handleChange}
+        const API_BASE = (import.meta?.env?.VITE_API_BASE_URL || '').trim();
               placeholder="PHONE"
               className="w-full px-6 py-4 rounded-2xl bg-[#001149] text-white placeholder:text-white/70 placeholder:uppercase border-none outline-none transition-colors text-sm"
             />
