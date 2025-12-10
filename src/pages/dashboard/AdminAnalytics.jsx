@@ -119,7 +119,7 @@ const AdminAnalytics = () => {
 
           {/* Overview Cards */}
           {overview && (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6 mb-8">
               <StatCard
                 icon={AlertCircle}
                 label="Total Complaints"
@@ -147,6 +147,13 @@ const AdminAnalytics = () => {
                 value={overview.totalVendors}
                 subtext="Service providers"
                 color="orange"
+              />
+              <StatCard
+                icon={TrendingUp}
+                label="Announcements"
+                value={overview.totalAnnouncements}
+                subtext="Total posted"
+                color="teal"
               />
             </div>
           )}

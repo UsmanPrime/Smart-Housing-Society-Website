@@ -1,8 +1,10 @@
+
 import express from 'express';
 import Complaint from '../models/Complaint.js';
 import Booking from '../models/Booking.js';
 import User from '../models/User.js';
 import Facility from '../models/Facility.js';
+import Announcement from '../models/Announcement.js';
 import auth, { requireRole } from '../middleware/auth.js';
 
 const router = express.Router();
@@ -374,6 +376,7 @@ router.get('/overview', auth, requireRole('admin'), async (req, res) => {
     const totalBookings = await Booking.countDocuments();
     const totalResidents = await User.countDocuments({ role: 'resident' });
     const totalVendors = await User.countDocuments({ role: 'vendor' });
+    const totalAnnouncements = await Announcement.countDocuments();
 
     const openComplaints = await Complaint.countDocuments({ status: 'open' });
     const pendingBookings = await Booking.countDocuments({ status: 'pending' });
@@ -385,6 +388,7 @@ router.get('/overview', auth, requireRole('admin'), async (req, res) => {
         totalBookings,
         totalResidents,
         totalVendors,
+        totalAnnouncements,
         openComplaints,
         pendingBookings
       }
