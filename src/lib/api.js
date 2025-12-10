@@ -1,4 +1,9 @@
-export const API_BASE = import.meta.env.VITE_API_BASE_URL || ''
+// Fallback to Render backend if env var is missing in build
+export const API_BASE = import.meta.env.VITE_API_BASE_URL || 'https://nextgen-residency.onrender.com'
+
+if (!import.meta.env.VITE_API_BASE_URL) {
+  console.warn('VITE_API_BASE_URL is missing; using Render fallback:', API_BASE)
+}
 
 // Get auth token from localStorage
 function getAuthToken() {
