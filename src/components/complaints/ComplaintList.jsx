@@ -1,4 +1,4 @@
-import { useMemo, useState, useEffect } from 'react'
+import { useMemo, useState, useEffect, memo } from 'react'
 import StatusBadge from './StatusBadge'
 import PriorityBadge from './PriorityBadge'
 import useComplaints from '../../hooks/useComplaints'
@@ -17,21 +17,13 @@ const timeAgo = (iso) => {
 
 const truncate = (str, n = 110) => (str?.length > n ? str.slice(0, n - 1) + '…' : str || '')
 
-export default function ComplaintList({ tab = 'my', onOpen, refreshTrigger, statusFilter }) {
+function ComplaintList({ tab = 'my', onOpen, statusFilter }) {
   const { filterComplaints, loading, error, refresh, fetchComplaints } = useComplaints()
   const [filters, setFilters] = useState({ status: '', priority: '', category: '' })
 
-  // Force fetch complaints from API on mount and tab change
+  // Fetch complaints from API on mount and when tab changes
   useEffect(() => {
     fetchComplaints();
-  }, [tab, refreshTrigger]);
-
-  // Auto-refresh every 10 seconds for live updates
-  useEffect(() => {
-    const interval = setInterval(() => {
-      fetchComplaints();
-    }, 10000);
-    return () => clearInterval(interval);
   }, [tab]);
 
   const baseList = useMemo(() => filterComplaints(tab, filters), [filterComplaints, tab, filters])
@@ -160,3 +152,5 @@ export default function ComplaintList({ tab = 'my', onOpen, refreshTrigger, stat
     </div>
   )
 }
+
+export default memo(ComplaintList)

@@ -120,14 +120,6 @@ export default function AdminDashboard() {
     }
   };
 
-  // Auto-refresh active complaints count every 20 seconds
-  useEffect(() => {
-    const interval = setInterval(() => {
-      fetchActiveComplaintsCount();
-    }, 20000);
-    return () => clearInterval(interval);
-  }, []);
-
   const fetchPendingUsers = async () => {
     try {
       const token = localStorage.getItem('token');

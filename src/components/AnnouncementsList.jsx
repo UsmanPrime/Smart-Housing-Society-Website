@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import axios from 'axios';
 
-export default function AnnouncementsList({ limit = 0, refreshKey = 0, onEdit, showActions = false, params = {}, onLoaded }) {
+export default function AnnouncementsList({ limit = 0, onEdit, showActions = false, params = {}, onLoaded }) {
   const [announcements, setAnnouncements] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -39,7 +39,7 @@ export default function AnnouncementsList({ limit = 0, refreshKey = 0, onEdit, s
   useEffect(() => {
     fetchAnnouncements();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [limit, refreshKey, JSON.stringify(params)]);
+  }, [limit, JSON.stringify(params)]);
 
   const handleDelete = async (id) => {
     if (!confirm('Delete this announcement?')) return;

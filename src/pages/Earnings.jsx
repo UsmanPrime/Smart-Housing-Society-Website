@@ -27,10 +27,6 @@ export default function Earnings() {
 
   useEffect(() => {
     fetchAll()
-    const interval = setInterval(() => {
-      fetchEarnings(false) // silent refresh
-    }, 30000) // 30s polling for near real-time updates
-    return () => clearInterval(interval)
   }, [])
 
   async function fetchAll() {

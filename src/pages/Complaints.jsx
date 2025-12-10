@@ -16,7 +16,6 @@ export default function Page() {
   const [activeTab, setActiveTab] = useState('my'); // my | all | assigned
   const location = useLocation();
   const [selected, setSelected] = useState(null);
-  const [refreshTrigger, setRefreshTrigger] = useState(0);
 
   const isAdmin = user?.role === 'admin';
   const isVendor = user?.role === 'vendor';
@@ -58,20 +57,14 @@ export default function Page() {
   const setRef = (key, el) => { sectionRefs.current[key] = el };
 
   const handleFormSuccess = () => {
-    setRefreshTrigger(prev => prev + 1);
+    // Data will be refreshed when tab changes or user navigates
+    // ComplaintList will fetch fresh data from parent state changes
   };
 
   const handleComplaintUpdate = () => {
-    setRefreshTrigger(prev => prev + 1);
+    // Data will be refreshed through component re-render
+    // ComplaintList will fetch fresh data from parent state changes
   };
-
-  // Auto-refresh every 15 seconds for live updates
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setRefreshTrigger(prev => prev + 1);
-    }, 15000);
-    return () => clearInterval(interval);
-  }, []);
 
   // Define available tabs based on role
   const availableTabs = [];
@@ -160,7 +153,6 @@ export default function Page() {
                 tab={activeTab} 
                 statusFilter={new URLSearchParams(location.search).get('status') || undefined}
                 onOpen={(c) => setSelected(c)} 
-                refreshTrigger={refreshTrigger} 
               />
             </section>
           </div>

@@ -66,13 +66,6 @@ export default function VendorDashboard() {
 
     fetchStats();
     fetchRecent();
-
-    // Auto-refresh stats every 20 seconds
-    const interval = setInterval(() => {
-      fetchStats();
-      fetchRecent();
-    }, 20000);
-    return () => clearInterval(interval);
   }, []);
 
   const submitNewService = async () => {

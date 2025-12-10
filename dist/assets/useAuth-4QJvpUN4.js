@@ -1,0 +1,1 @@
+import{r as o}from"./react-core-Ljpx9oFu.js";function l(){let n=localStorage.getItem("user"),e=null;try{e=n?JSON.parse(n):null}catch{e=null}const t=(e==null?void 0:e.role)||"guest";return o.useMemo(()=>({user:e,token:e==null?void 0:e.token,role:t,isAdmin:t==="admin",isVendor:t==="vendor",isResident:t==="resident"}),[t,e])}export{l as u};

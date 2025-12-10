@@ -1,9 +1,9 @@
 import { Link } from 'react-router-dom'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback, memo } from 'react'
 import logo from '../assets/logo.png'
 import { useNavigate, useLocation } from 'react-router-dom'
 
-export default function Navbar() {
+function Navbar() {
   const [isScrolled, setIsScrolled] = useState(false);
   const [user, setUser] = useState(null);
   const [showDropdown, setShowDropdown] = useState(false);
@@ -48,15 +48,15 @@ export default function Navbar() {
     };
   }, [location]);
 
-  const handleLogout = () => {
+  const handleLogout = useCallback(() => {
     localStorage.removeItem('user');
     localStorage.removeItem('token');
     setUser(null);
     setShowDropdown(false);
     navigate('/');
-  };
+  }, [navigate]);
 
-  const handleDashboardClick = (e) => {
+  const handleDashboardClick = useCallback((e) => {
     e.preventDefault();
     if (user) {
       if (user.role === 'admin') {
@@ -67,11 +67,10 @@ export default function Navbar() {
         navigate('/dashboard/resident');
       }
     }
-  };
+  }, [user, navigate]);
 
-  const handleHomeClick = (e) => {
+  const handleHomeClick = useCallback((e) => {
     e.preventDefault()
-
     if (location.pathname !== '/') {
       navigate('/')
       setTimeout(() => {
@@ -80,7 +79,7 @@ export default function Navbar() {
     } else {
       window.scrollTo({ top: 0, behavior: 'smooth' })
     }
-  }
+  }, [location.pathname, navigate])
 
   return (
     <header
@@ -187,3 +186,5 @@ export default function Navbar() {
     </header>
   );
 }
+
+export default memo(Navbar)

@@ -1,7 +1,7 @@
-import { useEffect } from 'react'
+import { useEffect, memo } from 'react'
 import logo from '../assets/logo.png'
 
-export default function Footer() {
+function Footer() {
   // inject Font Awesome stylesheet so <i class="fa-..."> icons render
   useEffect(() => {
     const id = 'fa-css';
@@ -10,6 +10,7 @@ export default function Footer() {
       link.id = id;
       link.rel = 'stylesheet';
       link.href = 'https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css';
+      link.defer = true;
       document.head.appendChild(link);
     }
   }, []);
@@ -64,3 +65,5 @@ export default function Footer() {
     </footer>
   );
 }
+
+export default memo(Footer)

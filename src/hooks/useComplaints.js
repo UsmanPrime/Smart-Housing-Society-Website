@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useMemo } from 'react'
 import useAuth from './useAuth'
 
 const API_BASE = '/api'
@@ -98,13 +98,18 @@ export default function useComplaints() {
     });
   }, [complaints, auth.user]);
 
+  // Memoized filtered result for performance
+  const memoizedFilteredComplaints = useMemo(() => {
+    return filterComplaints('all', {});
+  }, [filterComplaints]);
+
   // Refresh complaints (re-fetch from API)
   const refresh = useCallback(() => {
     return fetchComplaints()
   }, [fetchComplaints])
 
   return {
-    complaints,
+    complaints: memoizedFilteredComplaints,
     loading,
     error,
     fetchComplaints,

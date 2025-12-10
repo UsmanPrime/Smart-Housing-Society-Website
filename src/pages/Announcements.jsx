@@ -6,7 +6,6 @@ import AnnouncementForm from '../components/AnnouncementForm';
 
 export default function Announcements() {
   const [editing, setEditing] = useState(null);
-  const [refreshKey, setRefreshKey] = useState(0);
   const [search, setSearch] = useState('');
   const [from, setFrom] = useState('');
   const [to, setTo] = useState('');
@@ -31,7 +30,7 @@ export default function Announcements() {
 
   const onSaved = () => {
     setEditing(null);
-    setRefreshKey((k) => k + 1);
+    // Data will refresh when filters change
   };
 
   return (
@@ -93,7 +92,6 @@ export default function Announcements() {
 
             {/* List */}
             <AnnouncementsList
-              refreshKey={refreshKey}
               onEdit={(a) => setEditing(a)}
               showActions={isAdmin}
               params={{ page, limit, search: search.trim(), from: from ? new Date(from).toISOString() : undefined, to: to ? new Date(new Date(to).setHours(23,59,59,999)).toISOString() : undefined }}

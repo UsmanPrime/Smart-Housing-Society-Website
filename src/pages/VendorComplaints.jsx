@@ -12,7 +12,6 @@ export default function VendorComplaintsPage() {
   const [stats, setStats] = useState({ open: 0, 'in-progress': 0, completed: 0, total: 0 })
   const [loading, setLoading] = useState(true)
   const [selected, setSelected] = useState(null)
-  const [refreshTrigger, setRefreshTrigger] = useState(0)
 
   useEffect(() => {
     if (!isVendor || !user) return
@@ -33,19 +32,12 @@ export default function VendorComplaintsPage() {
     }
 
     fetchMyWork()
-  }, [isVendor, user, refreshTrigger])
+  }, [isVendor, user])
 
   const handleComplaintUpdate = () => {
-    setRefreshTrigger(prev => prev + 1)
+    // Data will refresh when component re-renders or filters change
+    // The useEffect will automatically refetch on state changes
   }
-
-  // Auto-refresh every 15 seconds for live updates
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setRefreshTrigger(prev => prev + 1)
-    }, 15000)
-    return () => clearInterval(interval)
-  }, [])
 
   if (!isVendor) {
     return (
