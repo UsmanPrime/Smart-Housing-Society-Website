@@ -17,7 +17,9 @@ const apiRequest = async (endpoint, options = {}) => {
     ...options.headers,
   }
 
-  const response = await fetch(`${API_BASE}${endpoint}`, {
+  // Ensure endpoint always starts with /api
+  const apiEndpoint = endpoint.startsWith('/api') ? endpoint : `/api${endpoint.startsWith('/') ? '' : '/'}${endpoint}`;
+  const response = await fetch(`${API_BASE}${apiEndpoint}`, {
     ...options,
     headers,
   })
