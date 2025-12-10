@@ -1,6 +1,7 @@
 import { Link, useNavigate } from 'react-router-dom';
 import { useEffect, useState } from 'react';
 import axios from 'axios';
+import { API_BASE } from '../lib/api';
 import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
 import recaptchaIcon from '../assets/RecaptchaLogo.svg.png';
@@ -45,7 +46,6 @@ export default function Login() {
     setLoading(true);
 
     try {
-      const API_BASE = (import.meta?.env?.VITE_API_BASE_URL || '').trim();
       const url = `${API_BASE}/api/auth/login`;
       const res = await axios.post(url, { email, password });
 
