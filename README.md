@@ -274,7 +274,7 @@ This project is licensed under the MIT License.
 ## 📧 Support
 
 For issues or questions:
-- Email: support@smarthousing.com
+- Email: uarmy285@gmail.com
 - GitHub Issues: [Create an issue](https://github.com/your-repo/issues)
 
 ## 🙏 Acknowledgments
