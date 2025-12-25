@@ -35,6 +35,7 @@ export default function App() {
       <Route path="/" element={<Home />} />
       <Route path="/login" element={<Suspense fallback={<LoadingFallback />}><Login /></Suspense>} />
       <Route path="/signup" element={<Suspense fallback={<LoadingFallback />}><Register /></Suspense>} />
+      <Route path="/register" element={<Suspense fallback={<LoadingFallback />}><Register /></Suspense>} />
       <Route path="/complaints" element={<Suspense fallback={<LoadingFallback />}><Complaints/></Suspense>} />
       <Route path="/facility" element={<Suspense fallback={<LoadingFallback />}><Facility/></Suspense>} />
       <Route path="/payments" element={<Suspense fallback={<LoadingFallback />}><Payments/></Suspense>} />
