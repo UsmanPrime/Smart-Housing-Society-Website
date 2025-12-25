@@ -3,14 +3,14 @@ import rateLimit from 'express-rate-limit';
 /**
  * General API Rate Limiter
  * Protects all API endpoints from excessive requests
- * 100 requests per 15 minutes per IP
+ * 100 requests per minute per IP
  */
 export const apiLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 300, // Limit each IP to 300 requests per windowMs (increased for dashboard/listing pages)
+  windowMs: 1 * 60 * 1000, // 1 minute
+  max: 100, // Limit each IP to 100 requests per minute
   message: {
     success: false,
-    message: 'Too many requests from this IP, please try again after 15 minutes'
+    message: 'Too many requests from this IP, please try again after a minute'
   },
   standardHeaders: true, // Return rate limit info in the `RateLimit-*` headers
   legacyHeaders: false, // Disable the `X-RateLimit-*` headers
@@ -22,33 +22,33 @@ export const apiLimiter = rateLimit({
 
 /**
  * Authentication Rate Limiter
- * Stricter limit for login, registration, and password reset
- * 5 requests per 15 minutes per IP
+ * Limit for login, registration, and password reset
+ * 100 requests per minute per IP
  */
 export const authLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 5, // Limit each IP to 5 login/register attempts per windowMs
+  windowMs: 1 * 60 * 1000, // 1 minute
+  max: 100, // Limit each IP to 100 login/register attempts per minute
   message: {
     success: false,
-    message: 'Too many authentication attempts from this IP, please try again after 15 minutes'
+    message: 'Too many authentication attempts from this IP, please try again after a minute'
   },
   standardHeaders: true,
   legacyHeaders: false,
   // Only count failed requests for auth
-  skipSuccessfulRequests: true,
+  skipSuccessfulRequests: false,
 });
 
 /**
  * File Upload Rate Limiter
  * Protects file upload endpoints from abuse
- * 20 uploads per 15 minutes per IP
+ * 100 uploads per minute per IP
  */
 export const uploadLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 20, // Limit each IP to 20 file uploads per windowMs
+  windowMs: 1 * 60 * 1000, // 1 minute
+  max: 100, // Limit each IP to 100 file uploads per minute
   message: {
     success: false,
-    message: 'Too many file uploads from this IP, please try again after 15 minutes'
+    message: 'Too many file uploads from this IP, please try again after a minute'
   },
   standardHeaders: true,
   legacyHeaders: false,
@@ -57,14 +57,14 @@ export const uploadLimiter = rateLimit({
 /**
  * Report/Export Rate Limiter
  * Protects resource-intensive operations
- * 50 requests per 15 minutes per IP (increased for dashboard usage)
+ * 100 requests per minute per IP
  */
 export const reportLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 50, // Limit each IP to 50 report requests per windowMs
+  windowMs: 1 * 60 * 1000, // 1 minute
+  max: 100, // Limit each IP to 100 report requests per minute
   message: {
     success: false,
-    message: 'Too many report requests from this IP, please try again after 15 minutes'
+    message: 'Too many report requests from this IP, please try again after a minute'
   },
   standardHeaders: true,
   legacyHeaders: false,
