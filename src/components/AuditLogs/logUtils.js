@@ -1,14 +1,28 @@
-const users = ["john.doe", "sara.khan", "lee.wong", "admin", "vendor.x"];
+// Action types from backend audit log model
 const actions = [
-  "LOGIN",
-  "LOGOUT",
-  "PAYMENT_SUBMIT",
-  "PAYMENT_APPROVE",
-  "PAYMENT_REJECT",
-  "USER_CREATE",
-  "USER_VERIFY",
-  "FACILITY_BOOK",
-  "FACILITY_CANCEL",
+  "USER_REGISTERED",
+  "USER_LOGIN",
+  "USER_LOGOUT",
+  "USER_APPROVED",
+  "USER_REJECTED",
+  "PROFILE_UPDATED",
+  "PASSWORD_RESET",
+  "CHARGE_CREATED",
+  "PAYMENT_UPLOADED",
+  "PAYMENT_VERIFIED",
+  "PAYMENT_REJECTED",
+  "COMPLAINT_CREATED",
+  "COMPLAINT_UPDATED",
+  "COMPLAINT_ASSIGNED",
+  "COMPLAINT_RESOLVED",
+  "BOOKING_CREATED",
+  "BOOKING_UPDATED",
+  "BOOKING_APPROVED",
+  "BOOKING_REJECTED",
+  "BOOKING_CANCELLED",
+  "ANNOUNCEMENT_CREATED",
+  "ANNOUNCEMENT_UPDATED",
+  "ANNOUNCEMENT_DELETED"
 ];
 
 function subDays(date, days) {
@@ -32,7 +46,7 @@ export function generateMockLogs(count = 100) {
 
 export function filterLogs(logs, { from, to, user, action }) {
   return logs.filter((l) => {
-    const t = new Date(l.ts);
+    const t = new Date(l.timestamp || l.ts);
     if (from && t < new Date(from)) return false;
     if (to && t > new Date(to)) return false;
     if (user !== "all" && l.user !== user) return false;
@@ -45,10 +59,10 @@ export function searchInLogs(logs, term) {
   const lc = term.toLowerCase();
   return logs.filter(
     (l) =>
-      l.user.toLowerCase().includes(lc) ||
-      l.action.toLowerCase().includes(lc) ||
-      l.ip.toLowerCase().includes(lc) ||
-      (l.meta?.ref || "").toLowerCase().includes(lc)
+      (l.user || "").toLowerCase().includes(lc) ||
+      (l.action || "").toLowerCase().includes(lc) ||
+      (l.ip || "").toLowerCase().includes(lc) ||
+      (l.ref || "").toLowerCase().includes(lc)
   );
 }
 
@@ -56,11 +70,11 @@ export function sortLogs(logs, column, dir = "asc") {
   const next = [...logs].sort((a, b) => {
     let av, bv;
     if (column === "ts") {
-      av = new Date(a.ts).getTime();
-      bv = new Date(b.ts).getTime();
+      av = new Date(a.timestamp || a.ts).getTime();
+      bv = new Date(b.timestamp || b.ts).getTime();
     } else if (column === "meta" || column === "ref") {
-      av = a?.meta?.ref || "";
-      bv = b?.meta?.ref || "";
+      av = a?.ref || "";
+      bv = b?.ref || "";
     } else {
       av = String(a[column] ?? "");
       bv = String(b[column] ?? "");
@@ -80,5 +94,5 @@ export function formatTs(iso) {
   )}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
 }
 
-export const USERS = users;
+// Export only actions, users will be fetched dynamically
 export const ACTIONS = actions;

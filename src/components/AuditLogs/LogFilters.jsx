@@ -1,5 +1,5 @@
 import React from "react";
-import { USERS, ACTIONS } from "./logUtils";
+import { ACTIONS } from "./logUtils";
 
 const toIsoStart = (d) => (d ? new Date(`${d}T00:00:00`).toISOString() : null);
 const toIsoEnd = (d) => (d ? new Date(`${d}T23:59:59.999`).toISOString() : null);
@@ -11,6 +11,7 @@ export default function LogFilters({
   onClear,
   search,
   setSearch,
+  availableUsers = [], // Dynamic users from logs
 }) {
   const fromValue = filters.from ? filters.from.slice(0, 10) : "";
   const toValue = filters.to ? filters.to.slice(0, 10) : "";
@@ -48,7 +49,7 @@ export default function LogFilters({
             className="w-full px-3 py-2 rounded border text-sm"
           >
             <option value="all">All</option>
-            {USERS.map((u) => (
+            {availableUsers.map((u) => (
               <option key={u} value={u}>
                 {u}
               </option>

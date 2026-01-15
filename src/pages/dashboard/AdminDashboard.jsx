@@ -480,6 +480,9 @@ export default function AdminDashboard() {
   const closeReceiptModal = () =>
     setReceiptModal({ open: false, fileUrl: '', filename: '' });
 
+  // Extract unique users from logs for filter dropdown
+  const availableUsers = [...new Set(logs.map(l => l.user).filter(Boolean))].sort();
+
   useEffect(() => {
     let next = filterLogs(logs, logFilters);
     if (logSearch.trim()) next = searchInLogs(next, logSearch.trim());
@@ -1085,6 +1088,7 @@ export default function AdminDashboard() {
               onClear={() => { setLogFilters({ from: null, to: null, user: 'all', action: 'all' }); setLogSearch(''); }}
               search={logSearch}
               setSearch={setLogSearch}
+              availableUsers={availableUsers}
             />
 
             <LogsTable

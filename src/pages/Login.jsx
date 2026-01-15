@@ -1,10 +1,11 @@
 import { Link, useNavigate } from 'react-router-dom';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import http from '../lib/http';
 import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
-import recaptchaIcon from '../assets/RecaptchaLogo.svg.png';
 import loginImg from '../assets/login.jpeg';
+
+const RECAPTCHA_SITE_KEY = import.meta.env.VITE_RECAPTCHA_SITE_KEY;
 
 export default function Login() {
   const [email, setEmail] = useState('');
@@ -12,7 +13,8 @@ export default function Login() {
   const [mounted, setMounted] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const [isRobotChecked, setIsRobotChecked] = useState(false);
+  const [recaptchaToken, setRecaptchaToken] = useState('');
+  const recaptchaRef = useRef(null);
   const navigate = useNavigate();
 
   // load fonts used elsewhere and for "Login" heading
@@ -32,12 +34,38 @@ export default function Login() {
     };
   }, []);
 
+  // Initialize reCAPTCHA widget
+  useEffect(() => {
+    const initRecaptcha = () => {
+      if (window.grecaptcha && window.grecaptcha.render && recaptchaRef.current) {
+        try {
+          window.grecaptcha.render(recaptchaRef.current, {
+            sitekey: RECAPTCHA_SITE_KEY,
+            callback: (token) => setRecaptchaToken(token),
+            'expired-callback': () => setRecaptchaToken(''),
+          });
+        } catch (e) {
+          console.error('reCAPTCHA render error:', e);
+        }
+      }
+    };
+
+    // If grecaptcha is already loaded
+    if (window.grecaptcha && window.grecaptcha.render) {
+      initRecaptcha();
+    } else {
+      // Wait for grecaptcha to load
+      window.addEventListener('load', initRecaptcha);
+      return () => window.removeEventListener('load', initRecaptcha);
+    }
+  }, []);
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
 
     // Validate reCAPTCHA
-    if (!isRobotChecked) {
+    if (!recaptchaToken) {
       setError('Please verify that you are not a robot');
       return;
     }
@@ -45,7 +73,11 @@ export default function Login() {
     setLoading(true);
 
     try {
-      const res = await http.post('/api/auth/login', { email, password });
+      const res = await http.post('/api/auth/login', { 
+        email, 
+        password,
+        recaptchaToken 
+      });
 
       if (res.data?.success) {
         // Save token and user info
@@ -67,6 +99,11 @@ export default function Login() {
     } catch (err) {
       const msg = err.response?.data?.message || 'Login failed. Please check your credentials.';
       setError(msg);
+      // Reset reCAPTCHA on error
+      if (window.grecaptcha) {
+        window.grecaptcha.reset();
+        setRecaptchaToken('');
+      }
     } finally {
       setLoading(false);
     }
@@ -169,25 +206,9 @@ export default function Login() {
                 </div>
               </div>
 
-              {/* Rectangular reCAPTCHA box styled exactly like contact form */}
-              <div className="flex items-center gap-6 py-3 px-6 bg-[#0b1a4a] w-fit border border-white/10">
-                <div className="w-8 h-8 border-2 border-white/30 flex items-center justify-center">
-                  <input 
-                    type="checkbox" 
-                    checked={isRobotChecked}
-                    onChange={(e) => setIsRobotChecked(e.target.checked)}
-                    className="w-4 h-4 cursor-pointer" 
-                    id="recaptcha"
-                  />
-                </div>
-                <label 
-                  htmlFor="recaptcha" 
-                  className="text-white/90 text-base cursor-pointer"
-                  style={{ fontFamily: 'Poppins, sans-serif' }}
-                >
-                  I'm not a robot
-                </label>
-                <img src={recaptchaIcon} alt="reCAPTCHA" className="w-8 h-8 ml-2" />
+              {/* Google reCAPTCHA v2 Widget */}
+              <div className="flex justify-start">
+                <div ref={recaptchaRef} className="g-recaptcha"></div>
               </div>
 
               {/* Divider */}

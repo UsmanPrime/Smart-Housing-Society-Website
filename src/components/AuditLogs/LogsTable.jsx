@@ -9,7 +9,7 @@ export default function LogsTable({
   setPage,
   sortCallback
 }) {
-  const [sortState, setSortState] = useState({ column: "ts", dir: "desc" });
+  const [sortState, setSortState] = useState({ column: "timestamp", dir: "desc" });
 
   const toggleSort = (col) => {
     setSortState(s => {
@@ -39,11 +39,11 @@ export default function LogsTable({
         <table className="w-full text-sm">
           <thead>
             <tr className="text-left bg-slate-50">
-              {["id", "ts", "user", "action", "ip", "ref"].map(col => (
+              {["id", "timestamp", "user", "action", "ip", "ref"].map(col => (
                 <th
                   key={col}
                   className="px-3 py-2 cursor-pointer select-none"
-                  onClick={() => toggleSort(col === "ref" ? "meta" : col)}
+                  onClick={() => toggleSort(col)}
                 >
                   {col.toUpperCase()}
                   {sortState.column === col && (
@@ -57,11 +57,11 @@ export default function LogsTable({
             {logs.map(l => (
               <tr key={l.id} className="border-t">
                 <td className="px-3 py-2">{highlightText(l.id)}</td>
-                <td className="px-3 py-2">{formatTs(l.ts)}</td>
+                <td className="px-3 py-2">{formatTs(l.timestamp)}</td>
                 <td className="px-3 py-2">{highlightText(l.user)}</td>
                 <td className="px-3 py-2">{highlightText(l.action)}</td>
                 <td className="px-3 py-2">{highlightText(l.ip)}</td>
-                <td className="px-3 py-2">{highlightText(l.meta.ref)}</td>
+                <td className="px-3 py-2">{highlightText(l.ref || "N/A")}</td>
               </tr>
             ))}
             {logs.length === 0 && (

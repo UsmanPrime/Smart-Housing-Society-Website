@@ -10,6 +10,7 @@ import { logAction } from '../utils/auditLogger.js';
 import { authLimiter } from '../middleware/rateLimiter.js';
 import speakeasy from 'speakeasy';
 import qrcode from 'qrcode';
+import { verifyRecaptcha } from '../utils/recaptcha.js';
 
 const router = Router();
 
@@ -85,6 +86,7 @@ router.post(
   [
     body('email').isEmail().withMessage('Valid email is required'),
     body('password').notEmpty().withMessage('Password is required'),
+    body('recaptchaToken').optional().isString(),
     body('totp').optional().isString()
   ],
   async (req, res) => {
@@ -93,7 +95,18 @@ router.post(
       return res.status(400).json({ success: false, errors: errors.array() });
     }
 
-    const { email, password } = req.body;
+    const { email, password, recaptchaToken } = req.body;
+
+    // Verify reCAPTCHA
+    if (recaptchaToken) {
+      const recaptchaResult = await verifyRecaptcha(recaptchaToken);
+      if (!recaptchaResult.success) {
+        return res.status(400).json({ 
+          success: false, 
+          message: recaptchaResult.error || 'reCAPTCHA verification failed' 
+        });
+      }
+    }
 
     try {
       const user = await User.findOne({ email: email.toLowerCase() });
