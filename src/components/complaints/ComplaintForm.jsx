@@ -9,6 +9,8 @@ export default function ComplaintForm({ onSuccess }) {
   const [errors, setErrors] = useState({})
   const [preview, setPreview] = useState(null)
   const [success, setSuccess] = useState('')
+  const [imageFile, setImageFile] = useState(null)
+  const [uploadingImage, setUploadingImage] = useState(false)
 
   // Only residents can create complaints
   if (!user || user.role !== 'resident') {
@@ -35,6 +37,72 @@ export default function ComplaintForm({ onSuccess }) {
     return e
   }
 
+  const handleImageChange = (e) => {
+    const file = e.target.files[0]
+    if (file) {
+      // Validate file type
+      const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp']
+      if (!allowedTypes.includes(file.type)) {
+        setErrors({ ...errors, image: 'Only image files (JPEG, PNG, GIF, WebP) are allowed' })
+        return
+      }
+      
+      // Validate file size (5MB max)
+      if (file.size > 5 * 1024 * 1024) {
+        setErrors({ ...errors, image: 'Image size must be less than 5MB' })
+        return
+      }
+      
+      setImageFile(file)
+      setFileName(file.name)
+      setErrors({ ...errors, image: null })
+      
+      // Create preview
+      const reader = new FileReader()
+      reader.onloadend = () => {
+        setPreview(reader.result)
+      }
+      reader.readAsDataURL(file)
+    } else {
+      setImageFile(null)
+      setFileName('No file chosen')
+      setPreview(null)
+    }
+  }
+
+  const uploadImage = async () => {
+    if (!imageFile) return null
+    
+    setUploadingImage(true)
+    try {
+      const formData = new FormData()
+      formData.append('image', imageFile)
+      
+      const token = localStorage.getItem('token')
+      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000'}/api/upload/complaint-image`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        },
+        body: formData
+      })
+      
+      const result = await response.json()
+      
+      if (result.success) {
+        return result.data.filename
+      } else {
+        throw new Error(result.message || 'Failed to upload image')
+      }
+    } catch (error) {
+      console.error('Error uploading image:', error)
+      setErrors({ ...errors, image: error.message })
+      return null
+    } finally {
+      setUploadingImage(false)
+    }
+  }
+
   const onSubmit = async (e) => {
     e.preventDefault()
     const data = new FormData(e.currentTarget)
@@ -44,12 +112,23 @@ export default function ComplaintForm({ onSuccess }) {
 
     setSuccess('')
     
+    // Upload image first if there is one
+    let uploadedImageFilename = null
+    if (imageFile) {
+      uploadedImageFilename = await uploadImage()
+      if (!uploadedImageFilename) {
+        setErrors({ submit: 'Failed to upload image. Please try again.' })
+        return
+      }
+    }
+    
     const complaintData = {
       category: data.get('category'),
       title: data.get('title')?.trim(),
       description: data.get('description')?.trim(),
       priority: data.get('priority') || 'medium',
       location: data.get('location')?.trim() || '',
+      ...(uploadedImageFilename && { attachments: [uploadedImageFilename] })
     }
 
     const result = await addComplaint(complaintData)
@@ -59,6 +138,7 @@ export default function ComplaintForm({ onSuccess }) {
       e.currentTarget.reset()
       setFileName('No file chosen')
       setPreview(null)
+      setImageFile(null)
       setErrors({})
       
       // Call parent callback if provided
@@ -144,9 +224,38 @@ export default function ComplaintForm({ onSuccess }) {
       </div>
       
       <div>
-        <label className="block text-sm font-medium mb-2 text-gray-400">Upload Image (Coming Soon)</label>
-        <div className="w-full bg-gray-700 text-gray-400 rounded-lg px-4 py-3 opacity-50 cursor-not-allowed">
-          <span className="text-sm">Image upload will be available in a future update</span>
+        <label className="block text-sm font-medium mb-2">Upload Image (Optional)</label>
+        <div className="space-y-2">
+          <div className="flex items-center gap-2">
+            <label className="bg-[#07164a] text-white px-4 py-2 rounded-lg cursor-pointer hover:bg-[#0a1f6b] transition-colors">
+              Choose File
+              <input 
+                type="file" 
+                accept="image/*" 
+                onChange={handleImageChange}
+                className="hidden"
+                disabled={loading || uploadingImage}
+              />
+            </label>
+            <span className="text-sm text-gray-400">{fileName}</span>
+          </div>
+          {errors.image && <div className="text-xs text-rose-500">{errors.image}</div>}
+          {preview && (
+            <div className="mt-2">
+              <img src={preview} alt="Preview" className="max-w-xs max-h-48 rounded-lg border border-gray-600" />
+              <button
+                type="button"
+                onClick={() => {
+                  setPreview(null)
+                  setImageFile(null)
+                  setFileName('No file chosen')
+                }}
+                className="mt-2 text-sm text-rose-500 hover:text-rose-400"
+              >
+                Remove Image
+              </button>
+            </div>
+          )}
         </div>
       </div>
       

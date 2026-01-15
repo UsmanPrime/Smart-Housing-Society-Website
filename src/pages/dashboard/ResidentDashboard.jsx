@@ -7,10 +7,13 @@ import { useBookingsStore } from '../../hooks/useBookingsStore';
 import BookingLegend from '../../components/facility/BookingLegend';
 import BookingDetailModal from '../../components/facility/BookingDetailModal';
 import useComplaints from '../../hooks/useComplaints';
+import { api } from '../../lib/api';
 
 export default function ResidentDashboard() {
   const [user, setUser] = useState(null);
   const [selectedBooking, setSelectedBooking] = useState(null);
+  const [paymentDues, setPaymentDues] = useState([]);
+  const [loadingDues, setLoadingDues] = useState(true);
   const navigate = useNavigate();
 
   const { listMyBookings, listFacilities, fetchBookings, loading, error } = useBookingsStore();
@@ -40,9 +43,33 @@ export default function ResidentDashboard() {
     fetchComplaints();
   }, [fetchBookings, fetchComplaints]);
 
+  // Fetch payment dues
+  useEffect(() => {
+    const fetchPaymentDues = async () => {
+      if (!user) return;
+      
+      try {
+        setLoadingDues(true);
+        const response = await api.get('/api/payments/dues/my-dues?status=pending');
+        if (response.success) {
+          setPaymentDues(response.dues || []);
+        }
+      } catch (error) {
+        console.error('Error fetching payment dues:', error);
+      } finally {
+        setLoadingDues(false);
+      }
+    };
+    
+    fetchPaymentDues();
+  }, [user]);
+
   const myBookings = listMyBookings(user?.id || '');
   const myComplaints = filterComplaints('my');
   const facMap = Object.fromEntries(listFacilities().map(f => [f._id || f.id, f.name]));
+
+  // Calculate total pending dues
+  const totalDues = paymentDues.reduce((sum, due) => sum + (due.amount || 0), 0);
 
   const now = Date.now();
   const activeCount = myBookings.filter(
@@ -123,8 +150,27 @@ export default function ResidentDashboard() {
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
                 </svg>
               </div>
-              <div className="text-3xl font-bold text-green-600 mb-2">$0.00</div>
-              <p className="text-gray-600 mb-4">Current dues (Coming soon)</p>
+              {loadingDues ? (
+                <div className="text-gray-500 text-sm mb-4">Loading...</div>
+              ) : (
+                <>
+                  <div className={`text-3xl font-bold mb-2 ${
+                    totalDues > 0 ? 'text-red-600' : 'text-green-600'
+                  }`}>
+                    ${totalDues.toFixed(2)}
+                  </div>
+                  <p className="text-gray-600 mb-2">
+                    {paymentDues.length > 0 
+                      ? `${paymentDues.length} pending ${paymentDues.length === 1 ? 'due' : 'dues'}`
+                      : 'No pending dues'}
+                  </p>
+                  {paymentDues.length > 0 && (
+                    <div className="text-xs text-gray-500 mb-4">
+                      Next due: {new Date(paymentDues[0]?.dueDate).toLocaleDateString()}
+                    </div>
+                  )}
+                </>
+              )}
               <button 
                 onClick={() => navigate('/payments')}
                 className="bg-ng-blue text-white px-4 py-2 rounded-lg hover:bg-ng-accent transition-colors w-full"

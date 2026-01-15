@@ -12,7 +12,7 @@ const router = express.Router();
 // POST /api/complaints - Create new complaint (residents only)
 router.post('/', auth, requireRole(['resident']), async (req, res) => {
   try {
-    const { title, category, priority, description, location } = req.body;
+    const { title, category, priority, description, location, attachments } = req.body;
 
     // Validation
     if (!title || !category || !description) {
@@ -29,7 +29,8 @@ router.post('/', auth, requireRole(['resident']), async (req, res) => {
       description,
       location,
       submittedBy: req.user.id,
-      status: 'open'
+      status: 'open',
+      ...(attachments && { attachments })
     });
 
     await complaint.save();
