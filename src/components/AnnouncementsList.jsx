@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import axios from 'axios';
+import http from '../lib/http';
 
 export default function AnnouncementsList({ limit = 0, onEdit, showActions = false, params = {}, onLoaded }) {
   const [announcements, setAnnouncements] = useState([]);
@@ -22,7 +22,7 @@ export default function AnnouncementsList({ limit = 0, onEdit, showActions = fal
 
       const qs = searchParams.toString();
       const url = `/api/announcements${qs ? `?${qs}` : ''}`;
-      const res = await axios.get(url);
+      const res = await http.get(url);
       if (res.data.success) {
         setAnnouncements(res.data.announcements || []);
         setPagination(res.data.pagination || null);
@@ -45,7 +45,7 @@ export default function AnnouncementsList({ limit = 0, onEdit, showActions = fal
     if (!confirm('Delete this announcement?')) return;
     try {
       const token = localStorage.getItem('token');
-      await axios.delete(`/api/announcements/${id}`, {
+      await http.delete(`/api/announcements/${id}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       setAnnouncements((prev) => prev.filter((a) => a._id !== id));

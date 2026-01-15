@@ -1,7 +1,6 @@
 import { Link, useNavigate } from 'react-router-dom';
 import { useEffect, useState } from 'react';
-import axios from 'axios';
-import { API_BASE } from '../lib/api';
+import http from '../lib/http';
 import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
 import recaptchaIcon from '../assets/RecaptchaLogo.svg.png';
@@ -46,8 +45,7 @@ export default function Login() {
     setLoading(true);
 
     try {
-      const url = `${API_BASE}/api/auth/login`;
-      const res = await axios.post(url, { email, password });
+      const res = await http.post('/api/auth/login', { email, password });
 
       if (res.data?.success) {
         // Save token and user info

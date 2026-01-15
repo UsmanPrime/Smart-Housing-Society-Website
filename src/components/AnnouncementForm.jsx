@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import axios from 'axios';
+import http from '../lib/http';
 
 export default function AnnouncementForm({ initialData = null, onSuccess, onCancel }) {
   const [title, setTitle] = useState('');
@@ -48,11 +48,11 @@ export default function AnnouncementForm({ initialData = null, onSuccess, onCanc
       if (date) payload.date = new Date(date).toISOString();
 
       if (initialData && initialData._id) {
-        await axios.put(`/api/announcements/${initialData._id}`, payload, {
+        await http.put(`/api/announcements/${initialData._id}`, payload, {
           headers: { Authorization: `Bearer ${token}` },
         });
       } else {
-        await axios.post('/api/announcements', payload, {
+        await http.post('/api/announcements', payload, {
           headers: { Authorization: `Bearer ${token}` },
         });
       }

@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import axios from 'axios';
+import http from '../lib/http';
 import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
 
@@ -27,7 +27,7 @@ export default function Profile() {
     const fetchProfile = async () => {
       try {
         const token = localStorage.getItem('token');
-        const res = await axios.get('/api/users/me', {
+        const res = await http.get('/api/users/me', {
           headers: { Authorization: `Bearer ${token}` },
         });
         if (res.data.success) {
@@ -67,7 +67,7 @@ export default function Profile() {
         payload.currentPassword = currentPassword;
         payload.newPassword = newPassword;
       }
-      const res = await axios.put('/api/users/me', payload, {
+      const res = await http.put('/api/users/me', payload, {
         headers: { Authorization: `Bearer ${token}` },
       });
       if (res.data.success) {

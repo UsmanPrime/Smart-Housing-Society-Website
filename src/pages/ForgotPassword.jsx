@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import axios from 'axios';
+import http from '../lib/http';
 import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
 
@@ -29,7 +29,7 @@ export default function ForgotPassword() {
     if (!email) return setError('Please enter your email');
     try {
       setLoading(true);
-      await axios.post('/api/auth/forgot-password', { email });
+      await http.post('/api/auth/forgot-password', { email });
       setMessage('If an account exists, an OTP has been sent to your email.');
       setStep(2);
     } catch (err) {
@@ -45,7 +45,7 @@ export default function ForgotPassword() {
     if (!otp) return setError('Enter the OTP sent to your email');
     try {
       setLoading(true);
-      const res = await axios.post('/api/auth/verify-otp', { email, otp });
+      const res = await http.post('/api/auth/verify-otp', { email, otp });
       if (res.data?.success) {
         setMessage('OTP verified. You can set a new password.');
         setStep(3);
@@ -64,7 +64,7 @@ export default function ForgotPassword() {
     if (newPassword !== confirmPassword) return setError('Passwords do not match');
     try {
       setLoading(true);
-      const res = await axios.post('/api/auth/reset-password', { email, otp, newPassword });
+      const res = await http.post('/api/auth/reset-password', { email, otp, newPassword });
       if (res.data?.success) {
         setMessage('Password updated. You can now log in.');
       }

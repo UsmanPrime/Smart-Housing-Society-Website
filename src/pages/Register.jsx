@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom';
-import axios from 'axios';
-import { API_BASE } from '../lib/api';
+import http from '../lib/http';
 import Footer from '../components/Footer'
 import recaptchaIcon from '../assets/RecaptchaLogo.svg.png'
 import loginImg from '../assets/register.jpg'
@@ -77,7 +76,6 @@ export default function Register() {
 
     setLoading(true)
     try {
-      const url = `${API_BASE}/api/auth/register`
       const payload = {
         name,
         email,
@@ -88,7 +86,7 @@ export default function Register() {
       if (userType === 'vendor') {
         payload.specialization = specialization;
       }
-      const res = await axios.post(url, payload)
+      const res = await http.post('/api/auth/register', payload)
 
       if (res.data?.success) {
         setSuccess(res.data?.message || 'Registration successful! Please wait for admin approval.')

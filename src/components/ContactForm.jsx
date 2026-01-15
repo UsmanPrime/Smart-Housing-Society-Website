@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import axios from 'axios';
+import http from '../lib/http';
 import recaptchaIcon from '../assets/RecaptchaLogo.svg.png';
 import contactImage from '../assets/contact.jpg';
 
@@ -80,8 +80,7 @@ export default function ContactForm() {
     setSubmitStatus({ type: '', message: '' });
 
     try {
-      const url = `${API_BASE}/api/contact`;
-      const response = await axios.post(url, formData);
+      const response = await http.post('/api/contact', formData);
       
       if (response.data.success) {
         setSubmitStatus({

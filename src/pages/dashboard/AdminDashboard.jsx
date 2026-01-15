@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import axios from 'axios';
+import http from '../../lib/http';
 import Navbar from '../../components/Navbar';
 import Footer from '../../components/Footer';
 import AnnouncementsList from '../../components/AnnouncementsList';
@@ -104,13 +104,36 @@ export default function AdminDashboard() {
     // Fetch real audit logs from backend
     fetchAuditLogs();
   }, [refresh]);
+
+  // Lightweight polling to keep dashboard data fresh
+  useEffect(() => {
+    const interval = setInterval(() => {
+      fetchPendingUsers();
+      fetchAllUsers('resident');
+      fetchAllUsers('vendor');
+      fetchActiveComplaintsCount();
+      fetchPendingPayments();
+      fetchReportsData();
+      fetchAuditLogs();
+      if (showAllBookings) {
+        refresh({
+          status: statusFilter === 'all' ? undefined : statusFilter,
+          facilityId: facilityFilter === 'all' ? undefined : facilityFilter,
+          startDate: dateFrom || undefined,
+          endDate: dateTo || undefined
+        });
+      }
+    }, 20000);
+
+    return () => clearInterval(interval);
+  }, [showAllBookings, facilityFilter, statusFilter, dateFrom, dateTo, refresh]);
   const fetchActiveComplaintsCount = async () => {
     try {
       const token = localStorage.getItem('token');
       const headers = { Authorization: `Bearer ${token}` };
       const [openRes, inProgRes] = await Promise.all([
-        axios.get('/api/complaints?status=open&limit=1', { headers }),
-        axios.get('/api/complaints?status=in-progress&limit=1', { headers })
+        http.get('/api/complaints?status=open&limit=1', { headers }),
+        http.get('/api/complaints?status=in-progress&limit=1', { headers })
       ]);
       const openTotal = openRes.data?.pagination?.total || 0;
       const inProgTotal = inProgRes.data?.pagination?.total || 0;
@@ -123,7 +146,7 @@ export default function AdminDashboard() {
   const fetchPendingUsers = async () => {
     try {
       const token = localStorage.getItem('token');
-      const response = await axios.get('/api/admin/pending-users', {
+      const response = await http.get('/api/admin/pending-users', {
         headers: { Authorization: `Bearer ${token}` }
       });
       
@@ -141,7 +164,7 @@ export default function AdminDashboard() {
   const handleApprove = async (userId) => {
     try {
       const token = localStorage.getItem('token');
-      const response = await axios.put(`/api/admin/approve/${userId}`, {}, {
+      const response = await http.put(`/api/admin/approve/${userId}`, {}, {
         headers: { Authorization: `Bearer ${token}` }
       });
       
@@ -160,7 +183,7 @@ export default function AdminDashboard() {
     
     try {
       const token = localStorage.getItem('token');
-      const response = await axios.put(`/api/admin/reject/${userId}`, {}, {
+      const response = await http.put(`/api/admin/reject/${userId}`, {}, {
         headers: { Authorization: `Bearer ${token}` }
       });
       
@@ -177,7 +200,7 @@ export default function AdminDashboard() {
   const fetchAllUsers = async (role, toggleShow = false) => {
     try {
       const token = localStorage.getItem('token');
-      const response = await axios.get(`/api/admin/users/${role}`, {
+      const response = await http.get(`/api/admin/users/${role}`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       
@@ -283,7 +306,7 @@ export default function AdminDashboard() {
     setPayError('');
     try {
       const token = localStorage.getItem('token');
-      const response = await axios.get('/api/payments/receipts/pending', {
+      const response = await http.get('/api/payments/receipts/pending', {
         headers: { Authorization: `Bearer ${token}` }
       });
       if (response.data.success) {
@@ -312,7 +335,7 @@ export default function AdminDashboard() {
   const fetchAuditLogs = async () => {
     try {
       const token = localStorage.getItem('token');
-      const response = await axios.get('/api/audit/logs?limit=100', {
+      const response = await http.get('/api/audit/logs?limit=100', {
         headers: { Authorization: `Bearer ${token}` }
       });
       if (response.data.success) {
@@ -340,9 +363,9 @@ export default function AdminDashboard() {
       
       // Fetch all reports data in parallel
       const [paymentSummaryRes, activityRes, paymentTrendRes] = await Promise.all([
-        axios.get('/api/reports/payment-summary', { headers }),
-        axios.get('/api/reports/activity', { headers }),
-        axios.get('/api/reports/payment-trend?period=monthly', { headers })
+        http.get('/api/reports/payment-summary', { headers }),
+        http.get('/api/reports/activity', { headers }),
+        http.get('/api/reports/payment-trend?period=monthly', { headers })
       ]);
       
       // Extract data from responses
@@ -363,16 +386,18 @@ export default function AdminDashboard() {
         ? ((activeUsers / totalUsers) * 100).toFixed(2)
         : 0;
       
-      // Build mock activity chart data (14 days) from audit logs
+      // Deterministic activity data (no randoms) - spread aggregate counts across last 7 days
       const activityChartData = [];
-      for (let i = 13; i >= 0; i--) {
+      const days = 7;
+      const avgLogins = Math.max(0, Math.floor((activityData.logins7Days || 0) / days));
+      for (let i = days - 1; i >= 0; i--) {
         const date = new Date();
         date.setDate(date.getDate() - i);
         activityChartData.push({
           date: date.toLocaleDateString(),
-          logins: Math.floor(Math.random() * 20), // Placeholder - backend doesn't return daily breakdown
-          bookings: Math.floor(Math.random() * 10),
-          payments: Math.floor(Math.random() * 8)
+          logins: avgLogins,
+          bookings: 0,
+          payments: 0
         });
       }
       
@@ -416,7 +441,7 @@ export default function AdminDashboard() {
   const approvePaymentLocal = async (id, remarks = '') => {
     try {
       const token = localStorage.getItem('token');
-      await axios.put(`/api/payments/verification/verify/${id}`, {}, {
+      await http.put(`/api/payments/verification/verify/${id}`, {}, {
         headers: { Authorization: `Bearer ${token}` }
       });
       // Refresh payment list after approval
@@ -434,7 +459,7 @@ export default function AdminDashboard() {
     }
     try {
       const token = localStorage.getItem('token');
-      await axios.put(`/api/payments/verification/reject/${id}`, 
+      await http.put(`/api/payments/verification/reject/${id}`, 
         { rejectionReason: remarks },
         { headers: { Authorization: `Bearer ${token}` } }
       );
