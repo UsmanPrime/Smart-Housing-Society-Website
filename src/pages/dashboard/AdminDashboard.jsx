@@ -205,11 +205,14 @@ export default function AdminDashboard() {
       });
       
       if (response.data.success) {
+        // Filter out rejected users - only show approved and pending
+        const filteredUsers = response.data.users.filter(u => u.status !== 'rejected');
+        
         if (role === 'resident') {
-          setAllResidents(response.data.users);
+          setAllResidents(filteredUsers);
           if (toggleShow) setShowResidents(!showResidents);
         } else if (role === 'vendor') {
-          setAllVendors(response.data.users);
+          setAllVendors(filteredUsers);
           if (toggleShow) setShowVendors(!showVendors);
         }
       }

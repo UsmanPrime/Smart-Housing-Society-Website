@@ -386,6 +386,18 @@ router.put('/:id', authenticateToken, async (req, res) => {
     await booking.populate('facilityId', 'name description');
     await booking.populate('userId', 'name email');
     
+    // Log booking update
+    await logAction({
+      userId: req.user.id,
+      userName: req.user.name,
+      userRole: req.user.role,
+      action: 'BOOKING_UPDATED',
+      resourceType: 'booking',
+      resourceId: booking._id.toString(),
+      details: { facility: booking.facilityId.name },
+      req
+    });
+    
     res.json({
       message: 'Booking updated successfully',
       booking
@@ -420,11 +432,31 @@ router.delete('/:id', authenticateToken, async (req, res) => {
     
     // Residents cancel (status → cancelled), admins can delete
     if (req.user.role === 'admin') {
+      await logAction({
+        userId: req.user.id,
+        userName: req.user.name,
+        userRole: req.user.role,
+        action: 'BOOKING_CANCELLED',
+        resourceType: 'booking',
+        resourceId: booking._id.toString(),
+        details: { deletedByAdmin: true },
+        req
+      });
       await Booking.findByIdAndDelete(req.params.id);
       res.json({ message: 'Booking deleted successfully' });
     } else {
       booking.status = 'cancelled';
       await booking.save();
+      await logAction({
+        userId: req.user.id,
+        userName: req.user.name,
+        userRole: req.user.role,
+        action: 'BOOKING_CANCELLED',
+        resourceType: 'booking',
+        resourceId: booking._id.toString(),
+        details: {},
+        req
+      });
       res.json({ message: 'Booking cancelled successfully', booking });
     }
   } catch (error) {
@@ -457,6 +489,18 @@ router.put('/:id/approve', authenticateToken, requireRole(['admin']), async (req
     booking.approvalDate = new Date();
     
     await booking.save();
+    
+    // Log booking approval
+    await logAction({
+      userId: req.user.id,
+      userName: req.user.name,
+      userRole: req.user.role,
+      action: 'BOOKING_APPROVED',
+      resourceType: 'booking',
+      resourceId: booking._id.toString(),
+      details: { facility: booking.facilityId.name, resident: booking.userId.name },
+      req
+    });
     
     // Send notification to resident
     try {
@@ -511,6 +555,18 @@ router.put('/:id/reject', authenticateToken, requireRole(['admin']), async (req,
     booking.rejectionReason = rejectionReason;
     
     await booking.save();
+    
+    // Log booking rejection
+    await logAction({
+      userId: req.user.id,
+      userName: req.user.name,
+      userRole: req.user.role,
+      action: 'BOOKING_REJECTED',
+      resourceType: 'booking',
+      resourceId: booking._id.toString(),
+      details: { facility: booking.facilityId.name, resident: booking.userId.name, reason: rejectionReason },
+      req
+    });
     
     // Send notification to resident
     try {

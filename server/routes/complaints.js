@@ -191,6 +191,20 @@ router.put('/:id', auth, async (req, res) => {
             author: req.user.id,
             authorName: req.user.name || 'Admin'
           });
+          // Log status change to resolved
+          if (status === 'resolved' || status === 'completed') {
+            await complaint.save();
+            await logAction({
+              userId: req.user.id,
+              userName: req.user.name,
+              userRole: req.user.role,
+              action: 'COMPLAINT_RESOLVED',
+              resourceType: 'complaint',
+              resourceId: complaint._id.toString(),
+              details: { oldStatus, newStatus: status },
+              req
+            });
+          }
         }
       }
       if (priority) complaint.priority = priority;
@@ -259,6 +273,18 @@ router.delete('/:id', auth, requireRole('admin'), async (req, res) => {
     }
 
     await Complaint.findByIdAndDelete(req.params.id);
+
+    // Log complaint deletion
+    await logAction({
+      userId: req.user.id,
+      userName: req.user.name,
+      userRole: req.user.role,
+      action: 'COMPLAINT_DELETED',
+      resourceType: 'complaint',
+      resourceId: req.params.id,
+      details: { title: complaint.title },
+      req
+    });
 
     res.json({
       success: true,
@@ -385,6 +411,18 @@ router.put('/:id/assign', auth, requireRole('admin'), async (req, res) => {
     await complaint.save();
     await complaint.populate('submittedBy', 'name email');
     await complaint.populate('assignedTo', 'name email specialization');
+
+    // Log complaint assignment
+    await logAction({
+      userId: req.user.id,
+      userName: req.user.name,
+      userRole: req.user.role,
+      action: 'COMPLAINT_ASSIGNED',
+      resourceType: 'complaint',
+      resourceId: complaint._id.toString(),
+      details: { vendor: vendor.name, category: complaint.category },
+      req
+    });
 
     // Best-effort: email the assigned vendor
     try {

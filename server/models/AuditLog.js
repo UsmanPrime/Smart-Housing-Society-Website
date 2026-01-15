@@ -33,6 +33,7 @@ const auditLogSchema = new mongoose.Schema({
       'COMPLAINT_UPDATED',
       'COMPLAINT_ASSIGNED',
       'COMPLAINT_RESOLVED',
+      'COMPLAINT_DELETED',
       'BOOKING_CREATED',
       'BOOKING_UPDATED',
       'BOOKING_APPROVED',
