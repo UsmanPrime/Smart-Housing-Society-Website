@@ -5,6 +5,7 @@ import User from '../models/User.js';
 import sendEmail from '../utils/sendEmail.js';
 import { announcementTemplate } from '../utils/emailTemplates.js';
 import auth from '../middleware/auth.js';
+import { logAction } from '../utils/auditLogger.js';
 
 const router = express.Router();
 
@@ -117,6 +118,18 @@ router.post(
         console.warn('Announcement email broadcast failed:', e?.message || e);
       }
 
+      // Log announcement creation
+      await logAction({
+        userId: req.user.id,
+        userName: req.user.name,
+        userRole: req.user.role,
+        action: 'ANNOUNCEMENT_CREATED',
+        resourceType: 'announcement',
+        resourceId: announcement._id.toString(),
+        details: { title },
+        req
+      });
+
       res.status(201).json({ success: true, message: 'Announcement created', announcement: populated });
     } catch (err) {
       console.error('Error creating announcement:', err);
@@ -152,6 +165,19 @@ router.put(
       const updated = await Announcement.findByIdAndUpdate(id, update, { new: true });
       if (!updated) return res.status(404).json({ success: false, message: 'Announcement not found' });
       const populated = await updated.populate('createdBy', 'name email role');
+      
+      // Log announcement update
+      await logAction({
+        userId: req.user.id,
+        userName: req.user.name,
+        userRole: req.user.role,
+        action: 'ANNOUNCEMENT_UPDATED',
+        resourceType: 'announcement',
+        resourceId: id,
+        details: { updatedFields: Object.keys(update) },
+        req
+      });
+      
       res.json({ success: true, message: 'Announcement updated', announcement: populated });
     } catch (err) {
       console.error('Error updating announcement:', err);
@@ -166,6 +192,19 @@ router.delete('/:id', auth, requireAdmin, async (req, res) => {
     const { id } = req.params;
     const deleted = await Announcement.findByIdAndDelete(id);
     if (!deleted) return res.status(404).json({ success: false, message: 'Announcement not found' });
+    
+    // Log announcement deletion
+    await logAction({
+      userId: req.user.id,
+      userName: req.user.name,
+      userRole: req.user.role,
+      action: 'ANNOUNCEMENT_DELETED',
+      resourceType: 'announcement',
+      resourceId: id,
+      details: { title: deleted.title },
+      req
+    });
+    
     res.json({ success: true, message: 'Announcement deleted' });
   } catch (err) {
     console.error('Error deleting announcement:', err);

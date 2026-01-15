@@ -59,15 +59,18 @@ router.put(
       await user.save();
       
       // Log profile update
-      await logAction('PROFILE_UPDATED', user._id, user.name, user.role, {
+      await logAction({
         userId: user._id,
+        userName: user.name,
+        userRole: user.role,
+        action: 'PROFILE_UPDATED',
         resourceType: 'user',
         resourceId: user._id.toString(),
         details: { 
           updatedFields: Object.keys(req.body),
           passwordChanged: !!newPassword 
         },
-        ip: req.ip || req.headers['x-forwarded-for'] || req.connection.remoteAddress
+        req
       });
       
       const safeUser = await User.findById(user._id).select('-passwordHash');

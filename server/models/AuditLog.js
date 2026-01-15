@@ -18,6 +18,7 @@ const auditLogSchema = new mongoose.Schema({
     type: String,
     required: [true, 'Action is required'],
     enum: [
+      'USER_REGISTERED',
       'CHARGE_CREATED',
       'PAYMENT_UPLOADED',
       'PAYMENT_VERIFIED',
@@ -30,9 +31,16 @@ const auditLogSchema = new mongoose.Schema({
       'PASSWORD_RESET',
       'COMPLAINT_CREATED',
       'COMPLAINT_UPDATED',
+      'COMPLAINT_ASSIGNED',
+      'COMPLAINT_RESOLVED',
       'BOOKING_CREATED',
+      'BOOKING_UPDATED',
       'BOOKING_APPROVED',
-      'BOOKING_REJECTED'
+      'BOOKING_REJECTED',
+      'BOOKING_CANCELLED',
+      'ANNOUNCEMENT_CREATED',
+      'ANNOUNCEMENT_UPDATED',
+      'ANNOUNCEMENT_DELETED'
     ]
   },
   resourceType: {

@@ -335,20 +335,23 @@ export default function AdminDashboard() {
   const fetchAuditLogs = async () => {
     try {
       const token = localStorage.getItem('token');
-      const response = await http.get('/api/audit/logs?limit=100', {
+      const response = await http.get('/api/audit/logs?limit=500', {
         headers: { Authorization: `Bearer ${token}` }
       });
       if (response.data.success) {
+        // Backend returns data as array directly
+        const logsData = response.data.data || [];
         // Transform backend audit logs to match component expectations
-        const transformed = response.data.data.logs.map((log, idx) => ({
+        const transformed = logsData.map((log, idx) => ({
           id: log._id || `log-${idx}`,
           timestamp: log.createdAt,
           user: log.userName,
           action: log.action,
-          ip: log.ipAddress,
+          ip: log.ipAddress || 'N/A',
           ref: log.resourceId || '-'
         }));
         setLogs(transformed);
+        console.log(`✅ Loaded ${transformed.length} audit logs`);
       }
     } catch (e) {
       console.error('Error fetching audit logs:', e);

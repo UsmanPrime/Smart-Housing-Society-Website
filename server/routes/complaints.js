@@ -5,6 +5,7 @@ import auth, { requireRole } from '../middleware/auth.js';
 import { notifyComplaintAssignment } from '../utils/notificationService.js';
 import ResidentDue from '../models/ResidentDue.js';
 import Charge from '../models/Charge.js';
+import { logAction } from '../utils/auditLogger.js';
 
 const router = express.Router();
 
@@ -33,6 +34,18 @@ router.post('/', auth, requireRole(['resident']), async (req, res) => {
 
     await complaint.save();
     await complaint.populate('submittedBy', 'name email');
+
+    // Log complaint creation
+    await logAction({
+      userId: req.user.id,
+      userName: req.user.name,
+      userRole: req.user.role,
+      action: 'COMPLAINT_CREATED',
+      resourceType: 'complaint',
+      resourceId: complaint._id.toString(),
+      details: { title, category, priority },
+      req
+    });
 
     res.status(201).json({
       success: true,

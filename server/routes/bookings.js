@@ -10,6 +10,7 @@ import {
 } from '../utils/bookingValidator.js';
 import { sendEmail } from '../utils/sendEmail.js';
 import { bookingApprovedEmail, bookingRejectedEmail } from '../utils/emailTemplates.js';
+import { logAction } from '../utils/auditLogger.js';
 
 const router = express.Router();
 
@@ -110,6 +111,18 @@ router.post('/', authenticateToken, async (req, res) => {
     // Populate facility and user details for response
     await booking.populate('facilityId', 'name description');
     await booking.populate('userId', 'name email');
+    
+    // Log booking creation
+    await logAction({
+      userId: req.user.id,
+      userName: req.user.name,
+      userRole: req.user.role,
+      action: 'BOOKING_CREATED',
+      resourceType: 'booking',
+      resourceId: booking._id.toString(),
+      details: { facility: facility.name, startTime, endTime, purpose },
+      req
+    });
     
     // Send notification to admins
     const admins = await User.find({ role: 'admin', status: 'approved' });

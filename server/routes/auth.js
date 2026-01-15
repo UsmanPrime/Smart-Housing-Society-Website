@@ -46,6 +46,18 @@ router.post(
       }
       const user = await User.create(userData);
 
+      // Log user registration
+      await logAction({
+        userId: user._id,
+        userName: user.name,
+        userRole: user.role,
+        action: 'USER_REGISTERED',
+        resourceType: 'user',
+        resourceId: user._id.toString(),
+        details: { email: user.email, role: user.role },
+        req
+      });
+
       // Send registration pending email (best-effort)
       try {
         const { subject, html } = registrationPendingTemplate({ name: user.name });
@@ -131,12 +143,15 @@ router.post(
       const token = jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: process.env.JWT_EXPIRES || '7d' });
 
       // Log successful login
-      await logAction('USER_LOGIN', user._id, user.name, user.role, {
+      await logAction({
         userId: user._id,
+        userName: user.name,
+        userRole: user.role,
+        action: 'USER_LOGIN',
         resourceType: 'user',
         resourceId: user._id.toString(),
         details: { email: user.email },
-        ip: req.ip || req.headers['x-forwarded-for'] || req.connection.remoteAddress
+        req
       });
 
       return res.json({
@@ -379,12 +394,15 @@ router.post(
       await user.save();
 
       // Log password reset
-      await logAction('PASSWORD_RESET', user._id, user.name, user.role, {
+      await logAction({
         userId: user._id,
+        userName: user.name,
+        userRole: user.role,
+        action: 'PASSWORD_RESET',
         resourceType: 'user',
         resourceId: user._id.toString(),
         details: { email: user.email },
-        ip: req.ip || req.headers['x-forwarded-for'] || req.connection.remoteAddress
+        req
       });
 
       res.json({ success: true, message: 'Password updated successfully' });
