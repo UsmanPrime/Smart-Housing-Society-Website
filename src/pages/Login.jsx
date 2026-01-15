@@ -1,6 +1,8 @@
 import { Link, useNavigate } from 'react-router-dom';
 import { useEffect, useState, useRef } from 'react';
 import http from '../lib/http';
+import { getCsrfToken } from '../hooks/useCsrf';
+import TwoFactorPrompt from '../components/Security/TwoFactorPrompt';
 import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
 import loginImg from '../assets/login.jpeg';
@@ -14,6 +16,8 @@ export default function Login() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [recaptchaToken, setRecaptchaToken] = useState('');
+  const [require2FA, setRequire2FA] = useState(false);
+  const [pendingUserId, setPendingUserId] = useState(null);
   const recaptchaRef = useRef(null);
   const navigate = useNavigate();
 
@@ -73,6 +77,9 @@ export default function Login() {
     setLoading(true);
 
     try {
+      // Fetch CSRF token before login
+      await getCsrfToken();
+
       const res = await http.post('/api/auth/login', { 
         email, 
         password,
@@ -80,8 +87,9 @@ export default function Login() {
       });
 
       if (res.data?.success) {
-        // Save token and user info
-        localStorage.setItem('token', res.data.token);
+        // Save tokens and user info separately for enhanced security
+        localStorage.setItem('token', res.data.accessToken);
+        localStorage.setItem('refreshToken', res.data.refreshToken);
         localStorage.setItem('user', JSON.stringify(res.data.user));
         
         // Redirect based on role
@@ -93,6 +101,11 @@ export default function Login() {
         } else {
           navigate('/dashboard/resident');
         }
+      } else if (res.data?.require2FA) {
+        // 2FA required - show prompt
+        setRequire2FA(true);
+        setPendingUserId(res.data.userId);
+        setLoading(false);
       } else {
         setError(res.data?.message || 'Login failed');
       }
@@ -105,7 +118,39 @@ export default function Login() {
         setRecaptchaToken('');
       }
     } finally {
-      setLoading(false);
+      if (!require2FA) {
+        setLoading(false);
+      }
+    }
+  };
+
+  const handle2FAVerify = async (twoFactorToken) => {
+    try {
+      const res = await http.post('/api/auth/login', {
+        email,
+        password,
+        recaptchaToken,
+        twoFactorToken
+      });
+
+      if (res.data?.success) {
+        localStorage.setItem('token', res.data.accessToken);
+        localStorage.setItem('refreshToken', res.data.refreshToken);
+        localStorage.setItem('user', JSON.stringify(res.data.user));
+        
+        const userRole = res.data.user.role;
+        if (userRole === 'admin') {
+          navigate('/dashboard/admin');
+        } else if (userRole === 'vendor') {
+          navigate('/dashboard/vendor');
+        } else {
+          navigate('/dashboard/resident');
+        }
+      } else {
+        throw new Error(res.data?.message || 'Verification failed');
+      }
+    } catch (err) {
+      throw err;
     }
   };
 
@@ -252,6 +297,18 @@ export default function Login() {
           </div>
         </div>
       </main>
+
+      {/* 2FA Prompt Modal */}
+      {require2FA && (
+        <TwoFactorPrompt
+          onVerify={handle2FAVerify}
+          onCancel={() => {
+            setRequire2FA(false);
+            setPendingUserId(null);
+            setLoading(false);
+          }}
+        />
+      )}
 
       <Footer />
     </div>

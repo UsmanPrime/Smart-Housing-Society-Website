@@ -1,17 +1,54 @@
 import jwt from 'jsonwebtoken';
+import { TokenService } from '../utils/tokenService.js';
+import { logSecurityEvent, SecurityEvents } from '../utils/securityLogger.js';
 
-// Main authentication middleware
+// Main authentication middleware with enhanced JWT security
 export function authenticateToken(req, res, next) {
   const authHeader = req.headers.authorization || '';
   const token = authHeader.startsWith('Bearer ') ? authHeader.slice(7) : null;
-  if (!token) return res.status(401).json({ success: false, message: 'No token provided' });
+  
+  if (!token) {
+    logSecurityEvent(SecurityEvents.UNAUTHORIZED_ACCESS, req, {
+      reason: 'No token provided'
+    });
+    return res.status(401).json({ success: false, message: 'No token provided' });
+  }
 
   try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    // Use TokenService for enhanced verification with fingerprinting
+    const decoded = TokenService.verifyAccessToken(token, req);
     req.user = decoded;
     next();
   } catch (err) {
-    return res.status(401).json({ success: false, message: 'Invalid or expired token' });
+    // Log different types of token errors
+    if (err.name === 'TokenExpiredError') {
+      logSecurityEvent(SecurityEvents.TOKEN_EXPIRED, req, {
+        expiredAt: err.expiredAt
+      });
+      return res.status(401).json({ 
+        success: false, 
+        message: 'Token expired',
+        code: 'TOKEN_EXPIRED'
+      });
+    } else if (err.message.includes('fingerprint')) {
+      logSecurityEvent(SecurityEvents.TOKEN_FINGERPRINT_MISMATCH, req, {
+        reason: err.message
+      });
+      return res.status(401).json({ 
+        success: false, 
+        message: 'Token validation failed',
+        code: 'INVALID_TOKEN'
+      });
+    } else {
+      logSecurityEvent(SecurityEvents.INVALID_TOKEN, req, {
+        error: err.message
+      });
+      return res.status(401).json({ 
+        success: false, 
+        message: 'Invalid token',
+        code: 'INVALID_TOKEN'
+      });
+    }
   }
 }
 

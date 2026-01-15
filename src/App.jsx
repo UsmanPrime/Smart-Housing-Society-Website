@@ -1,5 +1,6 @@
 import { Routes, Route } from 'react-router-dom'
-import { Suspense, lazy } from 'react'
+import { Suspense, lazy, useEffect } from 'react'
+import { getCsrfToken } from './hooks/useCsrf'
 import Home from './pages/Home'
 const Login = lazy(() => import('./pages/Login'))
 const Register = lazy(() => import('./pages/Register'))
@@ -30,6 +31,13 @@ const LoadingFallback = () => (
 )
 
 export default function App() {
+  // Fetch CSRF token when app loads
+  useEffect(() => {
+    getCsrfToken().catch(err => {
+      console.error('Failed to fetch CSRF token:', err)
+    })
+  }, [])
+
   return (
     <Routes>
       <Route path="/" element={<Home />} />

@@ -48,12 +48,29 @@ function Navbar() {
     };
   }, [location]);
 
-  const handleLogout = useCallback(() => {
-    localStorage.removeItem('user');
-    localStorage.removeItem('token');
-    setUser(null);
-    setShowDropdown(false);
-    navigate('/');
+  const handleLogout = useCallback(async () => {
+    try {
+      // Call logout endpoint to invalidate refresh token
+      const refreshToken = localStorage.getItem('refreshToken');
+      if (refreshToken) {
+        await fetch(`${import.meta.env.VITE_API_BASE || 'http://localhost:5000'}/api/auth/logout`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ refreshToken }),
+        }).catch(() => {}); // Ignore errors, still clear local storage
+      }
+    } catch (err) {
+      console.error('Logout error:', err);
+    } finally {
+      // Clear all auth data
+      localStorage.removeItem('user');
+      localStorage.removeItem('token');
+      localStorage.removeItem('refreshToken');
+      sessionStorage.removeItem('csrfToken');
+      setUser(null);
+      setShowDropdown(false);
+      navigate('/');
+    }
   }, [navigate]);
 
   const handleDashboardClick = useCallback((e) => {

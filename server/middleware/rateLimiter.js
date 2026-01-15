@@ -1,71 +1,117 @@
 import rateLimit from 'express-rate-limit';
 
 /**
- * General API Rate Limiter
- * Protects all API endpoints from excessive requests
- * 100 requests per minute per IP
+ * General API Rate Limiter - More restrictive
+ * 60 requests per minute per IP
  */
 export const apiLimiter = rateLimit({
   windowMs: 1 * 60 * 1000, // 1 minute
-  max: 100, // Limit each IP to 100 requests per minute
+  max: 60, // 60 requests per minute
   message: {
     success: false,
     message: 'Too many requests from this IP, please try again after a minute'
   },
-  standardHeaders: true, // Return rate limit info in the `RateLimit-*` headers
-  legacyHeaders: false, // Disable the `X-RateLimit-*` headers
-  // Skip rate limiting for successful requests (optional)
-  skipSuccessfulRequests: false,
-  // Skip rate limiting for failed requests (optional)
-  skipFailedRequests: false,
+  standardHeaders: true,
+  legacyHeaders: false,
+  skip: (req) => {
+    // Skip rate limiting for health checks
+    return req.path === '/' || req.path === '/health';
+  }
 });
 
 /**
- * Authentication Rate Limiter
- * Limit for login, registration, and password reset
- * 100 requests per minute per IP
+ * Strict Authentication Rate Limiter
+ * Only 5 attempts per 15 minutes
  */
 export const authLimiter = rateLimit({
-  windowMs: 1 * 60 * 1000, // 1 minute
-  max: 100, // Limit each IP to 100 login/register attempts per minute
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 5, // Only 5 attempts per 15 minutes
+  skipSuccessfulRequests: true, // Don't count successful logins
   message: {
     success: false,
-    message: 'Too many authentication attempts from this IP, please try again after a minute'
+    message: 'Too many authentication attempts. Account temporarily locked for 15 minutes.',
+    retryAfter: 900 // seconds
   },
   standardHeaders: true,
   legacyHeaders: false,
-  // Only count failed requests for auth
-  skipSuccessfulRequests: false,
+  handler: (req, res) => {
+    res.status(429).json({
+      success: false,
+      message: 'Too many login attempts. Please try again in 15 minutes.',
+      retryAfter: 900,
+      lockedUntil: new Date(Date.now() + 15 * 60 * 1000)
+    });
+  }
 });
 
 /**
  * File Upload Rate Limiter
- * Protects file upload endpoints from abuse
- * 100 uploads per minute per IP
+ * 10 uploads per 15 minutes per IP
  */
 export const uploadLimiter = rateLimit({
-  windowMs: 1 * 60 * 1000, // 1 minute
-  max: 100, // Limit each IP to 100 file uploads per minute
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 10, // 10 uploads per 15 minutes
   message: {
     success: false,
-    message: 'Too many file uploads from this IP, please try again after a minute'
+    message: 'Too many file uploads from this IP, please try again later'
   },
   standardHeaders: true,
   legacyHeaders: false,
 });
 
 /**
- * Report/Export Rate Limiter
- * Protects resource-intensive operations
- * 100 requests per minute per IP
+ * Report/Export Rate Limiter (CPU intensive)
+ * 5 reports per 15 minutes per IP
  */
 export const reportLimiter = rateLimit({
-  windowMs: 1 * 60 * 1000, // 1 minute
-  max: 100, // Limit each IP to 100 report requests per minute
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 5, // Only 5 reports per 15 minutes
   message: {
     success: false,
-    message: 'Too many report requests from this IP, please try again after a minute'
+    message: 'Too many report requests from this IP, please try again later'
   },
   standardHeaders: true,
   legacyHeaders: false,
 });
+
+/**
+ * Payment submission limiter
+ * 3 payment submissions per minute
+ */
+export const paymentLimiter = rateLimit({
+  windowMs: 1 * 60 * 1000, // 1 minute
+  max: 3, // Only 3 payment submissions per minute
+  message: {
+    success: false,
+    message: 'Too many payment submissions. Please wait before trying again.'
+  },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+// IP-based progressive delay for failed logins
+const loginAttempts = new Map();
+
+export const progressiveDelayMiddleware = (req, res, next) => {
+  const ip = req.ip;
+  const attempts = loginAttempts.get(ip) || 0;
+  
+  if (attempts > 0) {
+    const delay = Math.min(1000 * Math.pow(2, attempts - 1), 30000); // Max 30 seconds
+    setTimeout(() => next(), delay);
+  } else {
+    next();
+  }
+};
+
+export const trackFailedLogin = (ip) => {
+  const attempts = (loginAttempts.get(ip) || 0) + 1;
+  loginAttempts.set(ip, attempts);
+  
+  // Reset after 1 hour
+  setTimeout(() => loginAttempts.delete(ip), 60 * 60 * 1000);
+};
+
+export const clearFailedLogin = (ip) => {
+  loginAttempts.delete(ip);
+};

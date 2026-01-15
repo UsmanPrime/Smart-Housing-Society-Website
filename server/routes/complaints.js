@@ -6,11 +6,12 @@ import { notifyComplaintAssignment } from '../utils/notificationService.js';
 import ResidentDue from '../models/ResidentDue.js';
 import Charge from '../models/Charge.js';
 import { logAction } from '../utils/auditLogger.js';
+import { complaintValidation, mongoIdValidation } from '../middleware/validation.js';
 
 const router = express.Router();
 
 // POST /api/complaints - Create new complaint (residents only)
-router.post('/', auth, requireRole(['resident']), async (req, res) => {
+router.post('/', auth, requireRole(['resident']), complaintValidation, async (req, res) => {
   try {
     const { title, category, priority, description, location, attachments } = req.body;
 

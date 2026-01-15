@@ -7,30 +7,37 @@ import User from '../models/User.js';
 import sendEmail from '../utils/sendEmail.js';
 import { registrationPendingTemplate, resetOtpTemplate } from '../utils/emailTemplates.js';
 import { logAction } from '../utils/auditLogger.js';
-import { authLimiter } from '../middleware/rateLimiter.js';
+import { authLimiter, progressiveDelayMiddleware, trackFailedLogin, clearFailedLogin } from '../middleware/rateLimiter.js';
+import { loginValidation, registerValidation } from '../middleware/validation.js';
 import speakeasy from 'speakeasy';
 import qrcode from 'qrcode';
 import { verifyRecaptcha } from '../utils/recaptcha.js';
+import { TokenService } from '../utils/tokenService.js';
+import { logSecurityEvent, SecurityEvents } from '../utils/securityLogger.js';
+import auth from '../middleware/auth.js';
 
 const router = Router();
+
+// Store for refresh tokens (in production, use Redis)
+// Map structure: refreshToken -> { userId, createdAt, expiresAt }
+const refreshTokenStore = new Map();
+
+// Cleanup expired refresh tokens every hour
+setInterval(() => {
+  const now = Date.now();
+  for (const [token, data] of refreshTokenStore.entries()) {
+    if (data.expiresAt < now) {
+      refreshTokenStore.delete(token);
+    }
+  }
+}, 60 * 60 * 1000);
 
 // POST /api/auth/register
 router.post(
   '/register',
   authLimiter,
-  [
-    body('name').trim().notEmpty().withMessage('Name is required'),
-    body('email').isEmail().withMessage('Valid email is required'),
-    body('password').isLength({ min: 6 }).withMessage('Password must be at least 6 characters'),
-    body('phone').optional().isString(),
-    body('role').optional().isIn(['resident', 'vendor', 'admin'])
-  ],
+  registerValidation,
   async (req, res) => {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      return res.status(400).json({ success: false, errors: errors.array() });
-    }
-
     const { name, email, password, phone, role = 'resident', specialization } = req.body;
 
     try {
@@ -83,18 +90,9 @@ router.post(
 router.post(
   '/login',
   authLimiter,
-  [
-    body('email').isEmail().withMessage('Valid email is required'),
-    body('password').notEmpty().withMessage('Password is required'),
-    body('recaptchaToken').optional().isString(),
-    body('totp').optional().isString()
-  ],
+  progressiveDelayMiddleware,
+  loginValidation,
   async (req, res) => {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      return res.status(400).json({ success: false, errors: errors.array() });
-    }
-
     const { email, password, recaptchaToken } = req.body;
 
     // Verify reCAPTCHA
@@ -111,11 +109,21 @@ router.post(
     try {
       const user = await User.findOne({ email: email.toLowerCase() });
       if (!user) {
+        trackFailedLogin(req.ip);
         return res.status(401).json({ success: false, message: 'Invalid credentials' });
       }
 
+      // Check if account is locked
+      if (user.isLocked) {
+        const lockTimeRemaining = Math.ceil((user.lockUntil - Date.now()) / 1000 / 60);
+        return res.status(423).json({
+          success: false,
+          message: `Account locked due to too many failed login attempts. Try again in ${lockTimeRemaining} minutes.`,
+          lockedUntil: user.lockUntil
+        });
+      }
+
       // Check if user account is approved
-      // If status is undefined (old users), treat as pending and require approval
       if (!user.status || user.status === 'pending') {
         return res.status(403).json({ 
           success: false, 
@@ -132,30 +140,128 @@ router.post(
 
       const valid = await bcrypt.compare(password, user.passwordHash);
       if (!valid) {
-        return res.status(401).json({ success: false, message: 'Invalid credentials' });
-      }
-
-      // If admin has 2FA enabled, require TOTP verification
-      if (user.role === 'admin' && user.twoFAEnabled) {
-        const { totp } = req.body;
-        if (!totp) {
-          return res.status(401).json({ success: false, message: 'Two-factor code required', require2FA: true });
-        }
-        const verified = speakeasy.totp.verify({
-          secret: user.twoFASecret,
-          encoding: 'base32',
-          token: totp,
-          window: 1,
+        await user.incLoginAttempts();
+        trackFailedLogin(req.ip);
+        
+        securityLogger.logSecurityEvent({
+          type: SecurityEvents.LOGIN_FAILURE,
+          userId: user._id,
+          email: user.email,
+          ip: req.ip,
+          userAgent: req.get('user-agent'),
+          metadata: { reason: 'invalid_password', attemptsRemaining: Math.max(0, 5 - (user.loginAttempts + 1)) }
         });
-        if (!verified) {
-          return res.status(401).json({ success: false, message: 'Invalid two-factor code' });
-        }
+        
+        const attemptsRemaining = Math.max(0, 5 - (user.loginAttempts + 1));
+        return res.status(401).json({ 
+          success: false, 
+          message: 'Invalid credentials',
+          attemptsRemaining
+        });
       }
 
-      const payload = { id: user._id, email: user.email, role: user.role };
-      const token = jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: process.env.JWT_EXPIRES || '7d' });
+      // Check if 2FA is enabled
+      if (user.twoFAEnabled) {
+        const { twoFactorToken } = req.body;
+        
+        if (!twoFactorToken) {
+          // Password is valid but 2FA token required
+          return res.status(200).json({ 
+            success: false,
+            require2FA: true,
+            userId: user._id,
+            message: 'Two-factor authentication required'
+          });
+        }
+
+        // Verify 2FA token
+        const TwoFactorAuthService = (await import('../utils/twoFactorAuth.js')).default;
+        const encryptionService = (await import('../utils/encryption.js')).default;
+        
+        // Get user with 2FA secret
+        const userWith2FA = await User.findById(user._id).select('+twoFASecret +backupCodes');
+        const secret = encryptionService.decrypt(userWith2FA.twoFASecret);
+        
+        // Try TOTP verification
+        let verified = TwoFactorAuthService.verifyToken(twoFactorToken, secret);
+        let usedBackupCode = false;
+        
+        // If TOTP fails, try backup codes
+        if (!verified && userWith2FA.backupCodes && userWith2FA.backupCodes.length > 0) {
+          const backupResult = await TwoFactorAuthService.verifyBackupCode(
+            twoFactorToken,
+            userWith2FA.backupCodes
+          );
+          
+          if (backupResult.valid) {
+            verified = true;
+            usedBackupCode = true;
+            
+            // Remove used backup code
+            userWith2FA.backupCodes.splice(backupResult.index, 1);
+            await userWith2FA.save();
+            
+            securityLogger.logSecurityEvent({
+              type: SecurityEvents.TWO_FA_BACKUP_CODE_USED,
+              userId: user._id,
+              email: user.email,
+              ip: req.ip,
+              userAgent: req.get('user-agent'),
+              metadata: { remainingCodes: userWith2FA.backupCodes.length }
+            });
+          }
+        }
+        
+        if (!verified) {
+          await user.incLoginAttempts();
+          trackFailedLogin(req.ip);
+          
+          securityLogger.logSecurityEvent({
+            type: SecurityEvents.TWO_FA_VERIFICATION_FAILED,
+            userId: user._id,
+            email: user.email,
+            ip: req.ip,
+            userAgent: req.get('user-agent')
+          });
+          
+          return res.status(401).json({ 
+            success: false, 
+            message: 'Invalid two-factor authentication code'
+          });
+        }
+        
+        // Log 2FA success
+        securityLogger.logSecurityEvent({
+          type: SecurityEvents.TWO_FA_VERIFICATION_SUCCESS,
+          userId: user._id,
+          email: user.email,
+          ip: req.ip,
+          userAgent: req.get('user-agent'),
+          metadata: { usedBackupCode }
+        });
+      }
+
+      // Successful login - reset login attempts
+      await user.resetLoginAttempts();
+      clearFailedLogin(req.ip);
+
+      // Generate token pair with fingerprinting
+      const { accessToken, refreshToken } = TokenService.generateTokenPair(user, req);
+      
+      // Store refresh token
+      refreshTokenStore.set(refreshToken, {
+        userId: user._id.toString(),
+        createdAt: Date.now(),
+        expiresAt: Date.now() + (7 * 24 * 60 * 60 * 1000) // 7 days
+      });
 
       // Log successful login
+      logSecurityEvent(SecurityEvents.LOGIN_SUCCESS, req, {
+        userId: user._id.toString(),
+        email: user.email,
+        role: user.role
+      });
+      
       await logAction({
         userId: user._id,
         userName: user.name,
@@ -170,7 +276,8 @@ router.post(
       return res.json({
         success: true,
         message: 'Login successful',
-        token,
+        accessToken,
+        refreshToken,
         user: { id: user._id, name: user.name, email: user.email, role: user.role }
       });
     } catch (err) {
@@ -425,5 +532,100 @@ router.post(
     }
   }
 );
+
+// POST /api/auth/refresh-token - Refresh access token
+router.post('/refresh-token', async (req, res) => {
+  try {
+    const { refreshToken } = req.body;
+    
+    if (!refreshToken) {
+      return res.status(400).json({
+        success: false,
+        message: 'Refresh token required'
+      });
+    }
+    
+    // Check if token exists in store
+    if (!refreshTokenStore.has(refreshToken)) {
+      logSecurityEvent(SecurityEvents.INVALID_TOKEN, req, {
+        reason: 'Refresh token not found in store'
+      });
+      return res.status(401).json({
+        success: false,
+        message: 'Invalid refresh token'
+      });
+    }
+    
+    try {
+      // Verify refresh token
+      const decoded = TokenService.verifyRefreshToken(refreshToken);
+      
+      // Get user
+      const user = await User.findById(decoded.id);
+      if (!user) {
+        refreshTokenStore.delete(refreshToken);
+        return res.status(401).json({
+          success: false,
+          message: 'User not found'
+        });
+      }
+      
+      // Generate new access token
+      const newAccessToken = TokenService.generateAccessToken(user, req);
+      
+      logSecurityEvent(SecurityEvents.LOGIN_SUCCESS, req, {
+        userId: user._id.toString(),
+        method: 'refresh_token'
+      });
+      
+      return res.json({
+        success: true,
+        accessToken: newAccessToken
+      });
+    } catch (error) {
+      // Invalid or expired refresh token
+      refreshTokenStore.delete(refreshToken);
+      logSecurityEvent(SecurityEvents.TOKEN_EXPIRED, req, {
+        error: error.message
+      });
+      return res.status(401).json({
+        success: false,
+        message: 'Invalid or expired refresh token'
+      });
+    }
+  } catch (error) {
+    console.error('Refresh token error:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Server error'
+    });
+  }
+});
+
+// POST /api/auth/logout - Logout and invalidate refresh token
+router.post('/logout', auth, async (req, res) => {
+  try {
+    const { refreshToken } = req.body;
+    
+    if (refreshToken) {
+      refreshTokenStore.delete(refreshToken);
+    }
+    
+    logSecurityEvent(SecurityEvents.LOGOUT, req, {
+      userId: req.user.id
+    });
+    
+    return res.json({
+      success: true,
+      message: 'Logged out successfully'
+    });
+  } catch (error) {
+    console.error('Logout error:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Server error'
+    });
+  }
+});
 
 export default router;

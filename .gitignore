@@ -1,3 +1,52 @@
+# Dependencies
 node_modules/
-server/.env
+server/node_modules/
+
+# Environment Variables
 .env
+.env.local
+.env.production.local
+server/.env
+server/.env.local
+server/.env.production
+
+# Secrets
+.secrets.production.txt
+*.pem
+*.key
+
+# Logs
+logs/
+*.log
+server/logs/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Uploads
+uploads/
+server/uploads/
+
+# Build outputs
+dist/
+build/
+.next/
+out/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Testing
+coverage/
+.nyc_output/
+
+# Vercel
+.vercel

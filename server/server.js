@@ -1,5 +1,9 @@
 import express from 'express';
+import helmet from 'helmet';
 import cors from 'cors';
+import mongoSanitize from 'express-mongo-sanitize';
+import cookieParser from 'cookie-parser';
+import csrf from 'csurf';
 import nodemailer from 'nodemailer';
 import dotenv from 'dotenv';
 import bodyParser from 'body-parser';
@@ -7,6 +11,7 @@ import mongoose from 'mongoose';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import logger from './utils/logger.js';
+import { validateEnvironmentOrExit } from './utils/envValidator.js';
 import authRouter from './routes/auth.js';
 import adminRouter from './routes/admin.js';
 import announcementsRouter from './routes/announcements.js';
@@ -21,9 +26,13 @@ import paymentsRouter from './routes/payments.js';
 import auditRouter from './routes/audit.js';
 import reportsRouter from './routes/reports.js';
 import filesRouter from './routes/files.js';
+import twoFactorRouter from './routes/twoFactor.js';
 import { apiLimiter } from './middleware/rateLimiter.js';
 
 dotenv.config();
+
+// Validate environment variables
+validateEnvironmentOrExit(process.env.NODE_ENV === 'production');
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -37,6 +46,40 @@ app.use((req, res, next) => {
   logger.debug('HTTP Request', { method: req.method, url: req.originalUrl, ip: req.ip });
   next();
 });
+
+// Enhanced security headers with Helmet
+app.use(helmet({
+  contentSecurityPolicy: {
+    directives: {
+      defaultSrc: ["'self'"],
+      styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
+      scriptSrc: ["'self'", "https://www.google.com", "https://www.gstatic.com"], // reCAPTCHA
+      frameSrc: ["https://www.google.com"], // reCAPTCHA frame
+      imgSrc: ["'self'", "data:", "https:", "blob:"],
+      fontSrc: ["'self'", "https://fonts.gstatic.com"],
+      connectSrc: ["'self'", process.env.FRONTEND_URL || 'http://localhost:5173'],
+      objectSrc: ["'none'"],
+      baseUri: ["'self'"],
+      formAction: ["'self'"],
+      frameAncestors: ["'none'"],
+      upgradeInsecureRequests: []
+    }
+  },
+  hsts: {
+    maxAge: 31536000, // 1 year
+    includeSubDomains: true,
+    preload: true
+  },
+  referrerPolicy: {
+    policy: 'strict-origin-when-cross-origin'
+  },
+  noSniff: true,
+  xssFilter: true,
+  hidePoweredBy: true,
+  frameguard: { action: 'deny' },
+  permittedCrossDomainPolicies: { permittedPolicies: 'none' },
+  dnsPrefetchControl: { allow: false }
+}));
 
 // Configure CORS for production
 const corsOptions = {
@@ -57,9 +100,60 @@ const corsOptions = {
 app.use(cors(corsOptions));
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
+app.use(cookieParser());
+
+// Data sanitization against NoSQL query injection
+app.use(mongoSanitize({
+  replaceWith: '_',
+  onSanitize: ({ req, key }) => {
+    logger.warn('Sanitized potentially malicious input', { 
+      key, 
+      method: req.method, 
+      path: req.path,
+      ip: req.ip 
+    });
+  }
+}));
 
 // Apply rate limiting to all API routes
 app.use('/api/', apiLimiter);
+
+// CSRF protection middleware
+const csrfProtection = csrf({ 
+  cookie: {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'strict'
+  }
+});
+
+// CSRF token endpoint (accessible without CSRF check)
+app.get('/api/csrf-token', csrfProtection, (req, res) => {
+  res.json({ 
+    success: true,
+    csrfToken: req.csrfToken() 
+  });
+});
+
+// Apply CSRF protection to state-changing operations
+app.use('/api/*', (req, res, next) => {
+  // Skip CSRF for GET requests and specific endpoints
+  const skipCSRF = [
+    req.method === 'GET',
+    req.method === 'HEAD',
+    req.method === 'OPTIONS',
+    req.path === '/api/csrf-token',
+    req.path.startsWith('/api/auth/login'),
+    req.path.startsWith('/api/auth/register'),
+    req.path.startsWith('/api/auth/refresh-token')
+  ].some(condition => condition);
+  
+  if (skipCSRF) {
+    return next();
+  }
+  
+  csrfProtection(req, res, next);
+});
 
 // NOTE: Direct static file serving disabled for security
 // Files are now served through authenticated routes in /api/files
@@ -100,6 +194,9 @@ app.get('/', (req, res) => {
 
 // Auth routes
 app.use('/api/auth', authRouter);
+
+// Two-Factor Authentication routes
+app.use('/api/2fa', twoFactorRouter);
 
 // Admin routes
 app.use('/api/admin', adminRouter);
