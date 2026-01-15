@@ -2,6 +2,7 @@ import { useEffect, memo } from 'react'
 import logo from '../assets/logo.png'
 
 function Footer() {
+  const year = new Date().getFullYear()
   // inject Font Awesome stylesheet so <i class="fa-..."> icons render
   useEffect(() => {
     const id = 'fa-css';
@@ -23,7 +24,7 @@ function Footer() {
         <div className="flex flex-col items-center md:items-start text-center md:text-left">
           <img src={logo} alt="logo" className="w-32 h-32 md:w-36 md:h-36 mb-2" />
           <p className="text-sm md:text-base font-medium text-[#0b1a4a]">
-            Copyright © 2025 NextGen Residency |<br className="hidden md:inline" />
+            Copyright © {year} NextGen Residency |<br className="hidden md:inline" />
             Smart Housing Society Management.
           </p>
         </div>
