@@ -58,10 +58,12 @@ export class TokenService {
         audience: 'smart-housing-users'
       });
       
-      // Verify fingerprint to prevent token theft
-      const currentFingerprint = this.generateFingerprint(req);
-      if (decoded.fingerprint && decoded.fingerprint !== currentFingerprint) {
-        throw new Error('Token fingerprint mismatch - possible token theft');
+      // Skip fingerprint validation in production (proxy/load balancer issues)
+      if (process.env.NODE_ENV !== 'production') {
+        const currentFingerprint = this.generateFingerprint(req);
+        if (decoded.fingerprint && decoded.fingerprint !== currentFingerprint) {
+          throw new Error('Token fingerprint mismatch - possible token theft');
+        }
       }
       
       // Verify token type
