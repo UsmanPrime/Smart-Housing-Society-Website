@@ -4,6 +4,7 @@ import react from '@vitejs/plugin-react'
 // Dev proxy lets the frontend call "/api/*" without hardcoding localhost:5000
 export default defineConfig({
   plugins: [react({ fastRefresh: true })],
+  base: '/',
   server: {
     proxy: {
       '/api': {
@@ -13,6 +14,7 @@ export default defineConfig({
     },
   },
   build: {
+    outDir: 'dist',
     rollupOptions: {
       output: {
         manualChunks: {
