@@ -12,7 +12,13 @@ services:
       - key: NODE_ENV
         value: production
       - key: MONGO_URI
-        sync: false
+        fromDatabase:
+          name: nextgen-db
+          property: connectionString
+      - key: MONGODB_URI
+        fromDatabase:
+          name: nextgen-db
+          property: connectionString
       - key: JWT_SECRET
         generateValue: true
       - key: JWT_REFRESH_SECRET
@@ -20,16 +26,16 @@ services:
       - key: ENCRYPTION_KEY
         generateValue: true
       - key: EMAIL_USER
-        sync: false
+        value: uarmy285@gmail.com
       - key: EMAIL_PASS
-        sync: false
+        value: uaclwnzvnjtzudji
       - key: EMAIL_HOST
         value: smtp.gmail.com
       - key: EMAIL_PORT
         value: 587
       - key: SECURITY_EMAIL
-        sync: false
+        value: blankdude123@gmail.com
       - key: RECEIVER_EMAIL
-        sync: false
+        value: blankdude123@gmail.com
       - key: FRONTEND_URL
         value: https://nextgen-residency.vercel.app
