@@ -66,11 +66,26 @@ export function useCsrf() {
 }
 
 /**
- * Get CSRF token from sessionStorage
+ * Get CSRF token from sessionStorage or fetch new one
  * Use this for direct access without hook
  */
-export function getCsrfToken() {
-  return sessionStorage.getItem('csrfToken');
+export async function getCsrfToken() {
+  // Check sessionStorage first
+  const stored = sessionStorage.getItem('csrfToken');
+  if (stored) return stored;
+  
+  // Fetch new token if not in storage
+  try {
+    const { api } = await import('../lib/api');
+    const response = await api.get('/api/csrf-token');
+    if (response.success && response.csrfToken) {
+      sessionStorage.setItem('csrfToken', response.csrfToken);
+      return response.csrfToken;
+    }
+  } catch (err) {
+    console.error('Failed to fetch CSRF token:', err);
+  }
+  return null;
 }
 
 /**
