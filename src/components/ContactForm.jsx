@@ -4,6 +4,20 @@ import contactImage from '../assets/contact.jpg';
 
 const RECAPTCHA_SITE_KEY = import.meta.env.VITE_RECAPTCHA_SITE_KEY;
 
+// Add CSS for autofill styling
+const autofillStyles = `
+  input:-webkit-autofill,
+  input:-webkit-autofill:hover,
+  input:-webkit-autofill:focus,
+  input:-webkit-autofill:active {
+    -webkit-box-shadow: 0 0 0 30px #001149 inset !important;
+    box-shadow: 0 0 0 30px #001149 inset !important;
+  }
+  input:-webkit-autofill {
+    -webkit-text-fill-color: white !important;
+  }
+`;
+
 export default function ContactForm() {
   const [isVisible, setIsVisible] = useState(false);
   const sectionRef = useRef(null);
@@ -23,6 +37,11 @@ export default function ContactForm() {
 
   // Load fonts and set up scroll animation observer, initialize reCAPTCHA
   useEffect(() => {
+    // Inject autofill CSS
+    const style = document.createElement('style');
+    style.textContent = autofillStyles;
+    document.head.appendChild(style);
+
     const loadFonts = async () => {
       await Promise.all([
         import('@fontsource/dm-serif-display'),
@@ -162,12 +181,11 @@ export default function ContactForm() {
             <div className="grid md:grid-cols-2 gap-6">
               <input
                 type="text"
-                name="name"
-                value={formData.name}
-                onChange={handleChange}
-                placeholder="NAME"
-                required
-                className="w-full px-6 py-4 rounded-2xl bg-[#001149] text-white placeholder:text-white/70 placeholder:uppercase border-none outline-none transition-colors text-sm"
+                name="name" focus:ring-2 focus:ring-blue-400"
+                style={{
+                  WebkitBoxShadow: 'inset 0 0 0 1000px #001149',
+                  WebkitTextFillColor: 'white'
+                }}
               />
               <input
                 type="email"
@@ -176,12 +194,26 @@ export default function ContactForm() {
                 onChange={handleChange}
                 placeholder="EMAIL"
                 required
-                className="w-full px-6 py-4 rounded-2xl bg-[#001149] text-white placeholder:text-white/70 placeholder:uppercase border-none outline-none transition-colors text-sm"
+                className="w-full px-6 py-4 rounded-2xl bg-[#001149] text-white placeholder:text-white/70 placeholder:uppercase border-none outline-none transition-colors text-sm focus:ring-2 focus:ring-blue-400"
+                style={{
+                  WebkitBoxShadow: 'inset 0 0 0 1000px #001149',
+                  WebkitTextFillColor: 'white'
+                }}
               />
             </div>
 
             {/* Phone */}
             <input
+              type="tel"
+              name="phone"
+              value={formData.phone}
+              onChange={handleChange}
+              placeholder="PHONE"
+              className="w-full px-6 py-4 rounded-2xl bg-[#001149] text-white placeholder:text-white/70 placeholder:uppercase border-none outline-none transition-colors text-sm focus:ring-2 focus:ring-blue-400"
+              style={{
+                WebkitBoxShadow: 'inset 0 0 0 1000px #001149',
+                WebkitTextFillColor: 'white'
+              }}
               type="tel"
               name="phone"
               value={formData.phone}
