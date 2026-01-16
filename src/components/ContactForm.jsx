@@ -181,7 +181,12 @@ export default function ContactForm() {
             <div className="grid md:grid-cols-2 gap-6">
               <input
                 type="text"
-                name="name" focus:ring-2 focus:ring-blue-400"
+                name="name"
+                value={formData.name}
+                onChange={handleChange}
+                placeholder="NAME"
+                required
+                className="w-full px-6 py-4 rounded-2xl bg-[#001149] text-white placeholder:text-white/70 placeholder:uppercase border-none outline-none transition-colors text-sm focus:ring-2 focus:ring-blue-400"
                 style={{
                   WebkitBoxShadow: 'inset 0 0 0 1000px #001149',
                   WebkitTextFillColor: 'white'
@@ -214,11 +219,6 @@ export default function ContactForm() {
                 WebkitBoxShadow: 'inset 0 0 0 1000px #001149',
                 WebkitTextFillColor: 'white'
               }}
-              type="tel"
-              name="phone"
-              value={formData.phone}
-              placeholder="PHONE"
-              className="w-full px-6 py-4 rounded-2xl bg-[#001149] text-white placeholder:text-white/70 placeholder:uppercase border-none outline-none transition-colors text-sm"
             />
 
             {/* Message */}
