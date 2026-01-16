@@ -1,11 +1,13 @@
 import { useState, useEffect, useRef } from 'react';
 import http from '../lib/http';
-import recaptchaIcon from '../assets/RecaptchaLogo.svg.png';
 import contactImage from '../assets/contact.jpg';
+
+const RECAPTCHA_SITE_KEY = import.meta.env.VITE_RECAPTCHA_SITE_KEY;
 
 export default function ContactForm() {
   const [isVisible, setIsVisible] = useState(false);
   const sectionRef = useRef(null);
+  const recaptchaRef = useRef(null);
   
   // Form state
   const [formData, setFormData] = useState({
@@ -17,9 +19,9 @@ export default function ContactForm() {
   
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitStatus, setSubmitStatus] = useState({ type: '', message: '' });
-  const [isRobotChecked, setIsRobotChecked] = useState(false);
+  const [recaptchaToken, setRecaptchaToken] = useState('');
 
-  // Load fonts and set up scroll animation observer
+  // Load fonts and set up scroll animation observer, initialize reCAPTCHA
   useEffect(() => {
     const loadFonts = async () => {
       await Promise.all([
@@ -42,6 +44,30 @@ export default function ContactForm() {
       observer.observe(sectionRef.current);
     }
 
+    // Initialize reCAPTCHA widget
+    const initRecaptcha = () => {
+      if (window.grecaptcha && window.grecaptcha.render && recaptchaRef.current) {
+        try {
+          window.grecaptcha.render(recaptchaRef.current, {
+            sitekey: RECAPTCHA_SITE_KEY,
+            callback: (token) => setRecaptchaToken(token),
+            'expired-callback': () => setRecaptchaToken(''),
+          });
+        } catch (e) {
+          console.error('reCAPTCHA render error:', e);
+        }
+      }
+    };
+
+    // If grecaptcha is already loaded
+    if (window.grecaptcha && window.grecaptcha.render) {
+      initRecaptcha();
+    } else {
+      // Wait for grecaptcha to load
+      window.addEventListener('load', initRecaptcha);
+      return () => window.removeEventListener('load', initRecaptcha);
+    }
+
     return () => observer.disconnect();
   }, []);
 
@@ -59,7 +85,7 @@ export default function ContactForm() {
     e.preventDefault();
     
     // Validate reCAPTCHA
-    if (!isRobotChecked) {
+    if (!recaptchaToken) {
       setSubmitStatus({
         type: 'error',
         message: 'Please verify that you are not a robot'
@@ -80,7 +106,10 @@ export default function ContactForm() {
     setSubmitStatus({ type: '', message: '' });
 
     try {
-      const response = await http.post('/api/contact', formData);
+      const response = await http.post('/api/contact', {
+        ...formData,
+        recaptchaToken
+      });
       
       if (response.data.success) {
         setSubmitStatus({
@@ -95,7 +124,12 @@ export default function ContactForm() {
           phone: '',
           message: ''
         });
-        setIsRobotChecked(false);
+        setRecaptchaToken('');
+        
+        // Reset reCAPTCHA widget
+        if (window.grecaptcha) {
+          window.grecaptcha.reset();
+        }
       }
     } catch (error) {
       setSubmitStatus({
@@ -166,20 +200,16 @@ export default function ContactForm() {
               className="w-full px-6 py-4 rounded-2xl bg-[#001149] text-white placeholder:text-white/70 placeholder:uppercase border-none outline-none transition-colors resize-none text-sm"
             ></textarea>
 
-            {/* reCAPTCHA box */}
-            <div className="inline-flex items-center gap-4 py-4 px-6 bg-[#001149] rounded-2xl">
-              <div className="w-7 h-7 border-2 border-white/40 flex items-center justify-center bg-transparent">
-                <input 
-                  type="checkbox" 
-                  checked={isRobotChecked}
-                  onChange={(e) => setIsRobotChecked(e.target.checked)}
-                  className="w-4 h-4 cursor-pointer accent-white" 
-                  id="recaptcha"
-                />
-              </div>
-              <label htmlFor="recaptcha" className="text-white text-base cursor-pointer">I'm not a robot</label>
-              <img src={recaptchaIcon} alt="reCAPTCHA" className="w-10 h-10 ml-2" />
-            </div>
+            {/* reCAPTCHA widget */}
+            <div 
+              ref={recaptchaRef}
+              style={{
+                display: 'flex',
+                justifyContent: 'center',
+                transform: 'scale(0.9)',
+                transformOrigin: 'center'
+              }}
+            ></div>
 
             {/* Status Message */}
             {submitStatus.message && (
