@@ -110,7 +110,17 @@ export default function Login() {
         setError(res.data?.message || 'Login failed');
       }
     } catch (err) {
-      const msg = err.response?.data?.message || 'Login failed. Please check your credentials.';
+      console.error('Login error:', err);
+      let msg = 'Login failed. Please check your credentials.';
+      
+      if (err.response?.data?.message) {
+        // Backend returned a specific error message
+        msg = err.response.data.message;
+      } else if (err.message === 'Network Error' || !err.response) {
+        // Network error - backend not reachable
+        msg = 'Cannot connect to server. Please check your internet connection or try again later.';
+      }
+      
       setError(msg);
       // Reset reCAPTCHA on error
       if (window.grecaptcha) {
