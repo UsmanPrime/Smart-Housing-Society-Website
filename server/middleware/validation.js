@@ -24,7 +24,7 @@ export const loginValidation = [
     .normalizeEmail()
     .isLength({ max: 255 }).withMessage('Email too long'),
   body('password')
-    .isLength({ min: 8 }).withMessage('Password must be at least 8 characters')
+    .notEmpty().withMessage('Password is required')
     .isLength({ max: 128 }).withMessage('Password too long'),
   handleValidationErrors
 ];
