@@ -192,6 +192,15 @@ app.get('/', (req, res) => {
   res.json({ message: 'Smart Housing Society Backend Server is running!' });
 });
 
+// Health check endpoint
+app.get('/api/health', (req, res) => {
+  res.json({ 
+    status: 'ok', 
+    message: 'Server is running',
+    timestamp: new Date().toISOString()
+  });
+});
+
 // Auth routes
 app.use('/api/auth', authRouter);
 
