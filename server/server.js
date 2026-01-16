@@ -41,6 +41,9 @@ const app = express();
 logger.info('Starting server initialization');
 const PORT = process.env.PORT || 5000;
 
+// Trust proxy - required for Render/Heroku/etc
+app.set('trust proxy', 1);
+
 // Middleware
 app.use((req, res, next) => {
   logger.debug('HTTP Request', { method: req.method, url: req.originalUrl, ip: req.ip });
