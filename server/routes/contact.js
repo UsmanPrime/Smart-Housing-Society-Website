@@ -70,8 +70,18 @@ router.post(
         });
       }
 
-      // Send email to admin (use RECEIVER_EMAIL override if set)
-      const adminEmail = process.env.RECEIVER_EMAIL || process.env.EMAIL_USER || 'admin@nextgen-residency.com';
+      // Always return success to user immediately
+      // Email sending happens in background (best-effort)
+      const responsePromise = res.status(200).json({
+        success: true,
+        message: 'Message sent successfully. We will contact you soon.'
+      });
+
+      // Send emails in background (don't await)
+      setImmediate(async () => {
+        try {
+          // Send email to admin (use RECEIVER_EMAIL override if set)
+          const adminEmail = process.env.RECEIVER_EMAIL || process.env.EMAIL_USER || 'admin@nextgen-residency.com';
       const subject = `New Contact Form Submission from ${name}`;
       
       const html = `
@@ -112,16 +122,16 @@ router.post(
       `;
 
       // Send both emails in parallel with short timeouts
-      const adminPromise = sendEmail({
-        to: adminEmail,
-        subject,
-        html,
-        retries: 1,
-        timeoutMs: 8000
-      });
+          const adminPromise = sendEmail({
+            to: adminEmail,
+            subject,
+            html,
+            retries: 1,
+            timeoutMs: 8000
+          });
 
-      // Send confirmation email to user
-      const confirmationHtml = `
+          // Send confirmation email to user
+          const confirmationHtml = `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
           <div style="background: linear-gradient(135deg, #001149 0%, #0b1a4a 100%); color: white; padding: 30px; border-radius: 10px 10px 0 0;">
             <h2 style="margin: 0; font-size: 24px;">Thank You for Contacting Us</h2>
@@ -153,38 +163,43 @@ router.post(
         </div>
       `;
 
-      const confirmPromise = sendEmail({
-        to: email,
-        subject: 'We Received Your Message - NextGen Residency',
-        html: confirmationHtml,
-        retries: 1,
-        timeoutMs: 8000
+          const confirmPromise = sendEmail({
+            to: email,
+            subject: 'We Received Your Message - NextGen Residency',
+            html: confirmationHtml,
+            retries: 1,
+            timeoutMs: 8000
+          });
+
+          // Wait up to 8s total for both emails
+          const results = await Promise.race([
+            Promise.allSettled([adminPromise, confirmPromise]),
+            new Promise((resolve) => setTimeout(() => resolve('timeout'), 8000))
+          ]);
+
+          // Log results
+          if (Array.isArray(results)) {
+            const adminResult = results[0];
+            const confirmResult = results[1];
+            if (adminResult?.status === 'fulfilled' && adminResult?.value?.success) {
+              console.log('✅ Contact admin email sent successfully');
+            } else {
+              console.error('❌ Contact admin email failed:', adminResult?.reason || adminResult?.value);
+            }
+            if (confirmResult?.status === 'fulfilled' && confirmResult?.value?.success) {
+              console.log('✅ Contact confirmation email sent successfully');
+            } else {
+              console.warn('⚠️ Contact confirmation email failed:', confirmResult?.reason || confirmResult?.value);
+            }
+          } else {
+            console.warn('⏱️ Contact email sending timed out (8s)');
+          }
+        } catch (bgError) {
+          console.error('❌ Background email error:', bgError);
+        }
       });
 
-      // Wait up to 8s total; respond success even if emails fail (best-effort)
-      const results = await Promise.race([
-        Promise.allSettled([adminPromise, confirmPromise]),
-        new Promise((resolve) => setTimeout(() => resolve('timeout'), 8000))
-      ]);
-
-      // Log failures but do not block user
-      if (Array.isArray(results)) {
-        const adminResult = results[0];
-        const confirmResult = results[1];
-        if (adminResult?.status === 'rejected' || adminResult?.value?.success === false) {
-          console.error('Contact email to admin failed', adminResult?.reason || adminResult?.value);
-        }
-        if (confirmResult?.status === 'rejected' || confirmResult?.value?.success === false) {
-          console.warn('Contact confirmation email failed', confirmResult?.reason || confirmResult?.value);
-        }
-      } else {
-        console.warn('Contact email sending timed out (8s)');
-      }
-
-      return res.status(200).json({
-        success: true,
-        message: 'Message sent successfully. We will contact you soon.'
-      });
+      return responsePromise;
     } catch (error) {
       console.error('Contact form error:', error);
       return res.status(500).json({
