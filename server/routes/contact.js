@@ -79,6 +79,12 @@ router.post(
 
       // Send emails in background (don't await)
       setImmediate(async () => {
+        // Skip email if not configured
+        if (!process.env.EMAIL_USER || !process.env.EMAIL_PASS) {
+          console.warn('⚠️ EMAIL_USER or EMAIL_PASS not configured - skipping contact emails');
+          return;
+        }
+
         try {
           // Send email to admin (use RECEIVER_EMAIL override if set)
           const adminEmail = process.env.RECEIVER_EMAIL || process.env.EMAIL_USER || 'admin@nextgen-residency.com';
