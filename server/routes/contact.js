@@ -117,7 +117,7 @@ router.post(
         subject,
         html,
         retries: 1,
-        timeoutMs: 10000
+        timeoutMs: 8000
       });
 
       // Send confirmation email to user
@@ -158,16 +158,27 @@ router.post(
         subject: 'We Received Your Message - NextGen Residency',
         html: confirmationHtml,
         retries: 1,
-        timeoutMs: 10000
+        timeoutMs: 8000
       });
 
-      const [adminResult, confirmResult] = await Promise.allSettled([adminPromise, confirmPromise]);
+      // Wait up to 8s total; respond success even if emails fail (best-effort)
+      const results = await Promise.race([
+        Promise.allSettled([adminPromise, confirmPromise]),
+        new Promise((resolve) => setTimeout(() => resolve('timeout'), 8000))
+      ]);
 
-      if (adminResult.status === 'rejected' || (adminResult.value && adminResult.value.success === false)) {
-        return res.status(500).json({
-          success: false,
-          message: 'Failed to send message. Please try again later.'
-        });
+      // Log failures but do not block user
+      if (Array.isArray(results)) {
+        const adminResult = results[0];
+        const confirmResult = results[1];
+        if (adminResult?.status === 'rejected' || adminResult?.value?.success === false) {
+          console.error('Contact email to admin failed', adminResult?.reason || adminResult?.value);
+        }
+        if (confirmResult?.status === 'rejected' || confirmResult?.value?.success === false) {
+          console.warn('Contact confirmation email failed', confirmResult?.reason || confirmResult?.value);
+        }
+      } else {
+        console.warn('Contact email sending timed out (8s)');
       }
 
       return res.status(200).json({
