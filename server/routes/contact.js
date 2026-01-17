@@ -111,10 +111,13 @@ router.post(
         </div>
       `;
 
-      await sendEmail({
+      // Send both emails in parallel with short timeouts
+      const adminPromise = sendEmail({
         to: adminEmail,
         subject,
-        html
+        html,
+        retries: 1,
+        timeoutMs: 10000
       });
 
       // Send confirmation email to user
@@ -150,11 +153,22 @@ router.post(
         </div>
       `;
 
-      await sendEmail({
+      const confirmPromise = sendEmail({
         to: email,
         subject: 'We Received Your Message - NextGen Residency',
-        html: confirmationHtml
+        html: confirmationHtml,
+        retries: 1,
+        timeoutMs: 10000
       });
+
+      const [adminResult, confirmResult] = await Promise.allSettled([adminPromise, confirmPromise]);
+
+      if (adminResult.status === 'rejected' || (adminResult.value && adminResult.value.success === false)) {
+        return res.status(500).json({
+          success: false,
+          message: 'Failed to send message. Please try again later.'
+        });
+      }
 
       return res.status(200).json({
         success: true,

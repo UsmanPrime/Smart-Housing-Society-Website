@@ -23,6 +23,10 @@ function getTransporter() {
     pool: true, // Use pooled connections
     maxConnections: 5,
     maxMessages: 100,
+    // Timeouts to avoid long hangs on Gmail/SMTP
+    socketTimeout: 10000,
+    connectionTimeout: 10000,
+    greetingTimeout: 8000
   });
   return cachedTransporter;
 }
@@ -38,9 +42,10 @@ function getTransporter() {
  * @param {string} options.replyTo - Reply-to address
  * @param {string} options.from - Sender address
  * @param {number} options.retries - Number of retries (default: 3)
+ * @param {number} options.timeoutMs - Per-attempt timeout in ms (default: 10000)
  * @returns {Promise<Object>} Result object
  */
-export async function sendEmail({ to, subject, html, bcc, cc, replyTo, from, retries = 3 }) {
+export async function sendEmail({ to, subject, html, bcc, cc, replyTo, from, retries = 3, timeoutMs = 10000 }) {
   const transporter = getTransporter();
   if (!transporter) {
     console.log('📧 Email skipped (no transporter configured)');
@@ -61,8 +66,12 @@ export async function sendEmail({ to, subject, html, bcc, cc, replyTo, from, ret
   
   for (let attempt = 1; attempt <= retries; attempt++) {
     try {
-      const info = await transporter.sendMail(mailOptions);
-      console.log(`✅ Email sent successfully to ${to}: ${info.messageId}`);
+      // Enforce per-attempt timeout
+      const info = await Promise.race([
+        transporter.sendMail(mailOptions),
+        new Promise((_, reject) => setTimeout(() => reject(new Error('SMTP timeout')), timeoutMs))
+      ]);
+      console.log(`✅ Email sent successfully to ${to}: ${info.messageId || 'no-id'}`);
       return { success: true, info, attempt };
     } catch (err) {
       lastError = err;
