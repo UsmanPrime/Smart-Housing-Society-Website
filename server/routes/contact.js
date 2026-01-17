@@ -70,8 +70,8 @@ router.post(
         });
       }
 
-      // Send email to admin
-      const adminEmail = process.env.EMAIL_USER || 'admin@nextgen-residency.com';
+      // Send email to admin (use RECEIVER_EMAIL override if set)
+      const adminEmail = process.env.RECEIVER_EMAIL || process.env.EMAIL_USER || 'admin@nextgen-residency.com';
       const subject = `New Contact Form Submission from ${name}`;
       
       const html = `
