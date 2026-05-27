@@ -143,13 +143,11 @@ router.post(
         await user.incLoginAttempts();
         trackFailedLogin(req.ip);
         
-        securityLogger.logSecurityEvent({
-          type: SecurityEvents.LOGIN_FAILURE,
+        logSecurityEvent(SecurityEvents.LOGIN_FAILURE, req, {
           userId: user._id,
           email: user.email,
-          ip: req.ip,
-          userAgent: req.get('user-agent'),
-          metadata: { reason: 'invalid_password', attemptsRemaining: Math.max(0, 5 - (user.loginAttempts + 1)) }
+          reason: 'invalid_password',
+          attemptsRemaining: Math.max(0, 5 - (user.loginAttempts + 1))
         });
         
         const attemptsRemaining = Math.max(0, 5 - (user.loginAttempts + 1));
@@ -201,13 +199,10 @@ router.post(
             userWith2FA.backupCodes.splice(backupResult.index, 1);
             await userWith2FA.save();
             
-            securityLogger.logSecurityEvent({
-              type: SecurityEvents.TWO_FA_BACKUP_CODE_USED,
+            logSecurityEvent(SecurityEvents.TWO_FA_BACKUP_CODE_USED, req, {
               userId: user._id,
               email: user.email,
-              ip: req.ip,
-              userAgent: req.get('user-agent'),
-              metadata: { remainingCodes: userWith2FA.backupCodes.length }
+              remainingCodes: userWith2FA.backupCodes.length
             });
           }
         }
@@ -216,12 +211,9 @@ router.post(
           await user.incLoginAttempts();
           trackFailedLogin(req.ip);
           
-          securityLogger.logSecurityEvent({
-            type: SecurityEvents.TWO_FA_VERIFICATION_FAILED,
+          logSecurityEvent(SecurityEvents.TWO_FA_VERIFICATION_FAILED, req, {
             userId: user._id,
-            email: user.email,
-            ip: req.ip,
-            userAgent: req.get('user-agent')
+            email: user.email
           });
           
           return res.status(401).json({ 
@@ -230,14 +222,10 @@ router.post(
           });
         }
         
-        // Log 2FA success
-        securityLogger.logSecurityEvent({
-          type: SecurityEvents.TWO_FA_VERIFICATION_SUCCESS,
+        logSecurityEvent(SecurityEvents.TWO_FA_VERIFICATION_SUCCESS, req, {
           userId: user._id,
           email: user.email,
-          ip: req.ip,
-          userAgent: req.get('user-agent'),
-          metadata: { usedBackupCode }
+          usedBackupCode
         });
       }
 

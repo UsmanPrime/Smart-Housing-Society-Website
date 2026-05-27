@@ -49,13 +49,10 @@ router.post('/setup', authenticateToken, async (req, res) => {
     await user.save();
 
     // Log setup initiation
-    securityLogger.logSecurityEvent({
-      type: SecurityEvents.TWO_FA_SETUP_INITIATED,
+    logSecurityEvent(SecurityEvents.TWO_FA_SETUP_INITIATED, req, {
       userId: user._id,
       email: user.email,
-      ip: req.ip,
-      userAgent: req.get('user-agent'),
-      metadata: { role: user.role }
+      role: user.role
     });
 
     res.json({
@@ -70,11 +67,9 @@ router.post('/setup', authenticateToken, async (req, res) => {
 
   } catch (error) {
     console.error('2FA setup error:', error);
-    securityLogger.logSecurityEvent({
-      type: SecurityEvents.TWO_FA_SETUP_FAILED,
+    logSecurityEvent(SecurityEvents.TWO_FA_SETUP_FAILED, req, {
       userId: req.user?.userId,
-      ip: req.ip,
-      metadata: { error: error.message }
+      error: error.message
     });
     res.status(500).json({ success: false, message: 'Failed to setup 2FA' });
   }
@@ -111,12 +106,9 @@ router.post('/verify-setup', authenticateToken, async (req, res) => {
     const isValid = TwoFactorAuthService.validateSetup(token, secret);
 
     if (!isValid) {
-      securityLogger.logSecurityEvent({
-        type: SecurityEvents.TWO_FA_VERIFICATION_FAILED,
+      logSecurityEvent(SecurityEvents.TWO_FA_VERIFICATION_FAILED, req, {
         userId: user._id,
-        email: user.email,
-        ip: req.ip,
-        userAgent: req.get('user-agent')
+        email: user.email
       });
 
       return res.status(400).json({ 
@@ -130,12 +122,9 @@ router.post('/verify-setup', authenticateToken, async (req, res) => {
     user.twoFAVerified = true;
     await user.save();
 
-    securityLogger.logSecurityEvent({
-      type: SecurityEvents.TWO_FA_ENABLED,
+    logSecurityEvent(SecurityEvents.TWO_FA_ENABLED, req, {
       userId: user._id,
-      email: user.email,
-      ip: req.ip,
-      userAgent: req.get('user-agent')
+      email: user.email
     });
 
     res.json({
@@ -194,24 +183,18 @@ router.post('/verify', async (req, res) => {
         user.backupCodes.splice(backupResult.index, 1);
         await user.save();
 
-        securityLogger.logSecurityEvent({
-          type: SecurityEvents.TWO_FA_BACKUP_CODE_USED,
+        logSecurityEvent(SecurityEvents.TWO_FA_BACKUP_CODE_USED, req, {
           userId: user._id,
           email: user.email,
-          ip: req.ip,
-          userAgent: req.get('user-agent'),
-          metadata: { remainingCodes: user.backupCodes.length }
+          remainingCodes: user.backupCodes.length
         });
       }
     }
 
     if (!isValid) {
-      securityLogger.logSecurityEvent({
-        type: SecurityEvents.TWO_FA_VERIFICATION_FAILED,
+      logSecurityEvent(SecurityEvents.TWO_FA_VERIFICATION_FAILED, req, {
         userId: user._id,
-        email: user.email,
-        ip: req.ip,
-        userAgent: req.get('user-agent')
+        email: user.email
       });
 
       return res.status(400).json({ 
@@ -220,14 +203,10 @@ router.post('/verify', async (req, res) => {
       });
     }
 
-    // Log successful verification
-    securityLogger.logSecurityEvent({
-      type: SecurityEvents.TWO_FA_VERIFICATION_SUCCESS,
+    logSecurityEvent(SecurityEvents.TWO_FA_VERIFICATION_SUCCESS, req, {
       userId: user._id,
       email: user.email,
-      ip: req.ip,
-      userAgent: req.get('user-agent'),
-      metadata: { usedBackupCode }
+      usedBackupCode
     });
 
     res.json({
@@ -287,12 +266,9 @@ router.post('/disable', authenticateToken, async (req, res) => {
     user.backupCodes = undefined;
     await user.save();
 
-    securityLogger.logSecurityEvent({
-      type: SecurityEvents.TWO_FA_DISABLED,
+    logSecurityEvent(SecurityEvents.TWO_FA_DISABLED, req, {
       userId: user._id,
-      email: user.email,
-      ip: req.ip,
-      userAgent: req.get('user-agent')
+      email: user.email
     });
 
     res.json({
@@ -356,12 +332,9 @@ router.post('/regenerate-backup-codes', authenticateToken, async (req, res) => {
     user.backupCodes = hashedBackupCodes;
     await user.save();
 
-    securityLogger.logSecurityEvent({
-      type: SecurityEvents.TWO_FA_BACKUP_CODES_REGENERATED,
+    logSecurityEvent(SecurityEvents.TWO_FA_BACKUP_CODES_REGENERATED, req, {
       userId: user._id,
-      email: user.email,
-      ip: req.ip,
-      userAgent: req.get('user-agent')
+      email: user.email
     });
 
     res.json({
