@@ -16,7 +16,6 @@ const Announcements = lazy(() => import('./pages/Announcements'))
 const Profile = lazy(() => import('./pages/Profile'))
 const ForgotPassword = lazy(() => import('./pages/ForgotPassword'))
 const VendorComplaintsPage = lazy(() => import('./pages/VendorComplaints'))
-const FacilityPage = lazy(() => import('./pages/Facility'))
 const AuditLogs = lazy(() => import('./pages/admin/AuditLogs'))
 const ReportsDashboard = lazy(() => import('./pages/admin/ReportsDashboard'))
 const CreateCharge = lazy(() => import('./pages/admin/CreateCharge'))
@@ -25,8 +24,17 @@ const PaymentManagement = lazy(() => import('./pages/PaymentManagement'))
 import ProtectedRoute from './components/ProtectedRoute'
 
 const LoadingFallback = () => (
-  <div className="min-h-screen flex items-center justify-center bg-slate-50">
-    <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-[#07164a]"></div>
+  <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-slate-50 to-white">
+    <div className="text-center">
+      <div className="relative w-16 h-16 mx-auto mb-4">
+        <div className="absolute inset-0 rounded-full border-2 border-[#0b1a4a]/10"></div>
+        <div className="absolute inset-0 rounded-full border-2 border-transparent border-t-[#0b1a4a] animate-spin"></div>
+      </div>
+      <p className="text-sm text-[#0b1a4a]/50 font-medium tracking-wider uppercase"
+        style={{ fontFamily: "'Poppins', sans-serif" }}>
+        Loading...
+      </p>
+    </div>
   </div>
 )
 
@@ -86,7 +94,7 @@ export default function App() {
         } 
       />
       <Route path="/vendor/complaints" element={<Suspense fallback={<LoadingFallback />}><VendorComplaintsPage /></Suspense>} />
-      <Route path="/facilities" element={<Suspense fallback={<LoadingFallback />}><FacilityPage /></Suspense>} />
+      <Route path="/facilities" element={<Suspense fallback={<LoadingFallback />}><Facility /></Suspense>} />
       <Route path="/payment-management" element={
         <ProtectedRoute allowedRoles={['resident']}>
           <Suspense fallback={<LoadingFallback />}><PaymentManagement /></Suspense>

@@ -151,7 +151,7 @@ app.use('/api/*', (req, res, next) => {
     req.path.startsWith('/api/auth/login'),
     req.path.startsWith('/api/auth/register'),
     req.path.startsWith('/api/auth/refresh-token'),
-    process.env.NODE_ENV === 'production' // Skip CSRF in production temporarily
+    req.path.startsWith('/api/contact') // Contact form uses reCAPTCHA for protection
   ].some(condition => condition);
   
   if (skipCSRF) {

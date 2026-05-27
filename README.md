@@ -1,246 +1,213 @@
-# 🏠 NextGen Residency
+# 🏠 NextGen Residency — Smart Housing Society Management Platform
 
-NextGen Residency is a centralized web platform designed to digitize and streamline the operational workflow of modern housing societies. Built by Team RDX, this solution replaces inefficient manual processes with a unified, transparent, and automated system.
+<div align="center">
 
-The platform features a robust Triple-Portal Architecture:
+[![MERN Stack](https://img.shields.io/badge/Stack-MERN-47A248?style=for-the-badge&logo=mongodb&logoColor=white)](https://www.mongodb.com/)
+[![React](https://img.shields.io/badge/React-18.2-61DAFB?style=for-the-badge&logo=react&logoColor=white)](https://reactjs.org/)
+[![Node.js](https://img.shields.io/badge/Node.js-Express-339933?style=for-the-badge&logo=node.js&logoColor=white)](https://nodejs.org/)
+[![Security](https://img.shields.io/badge/Security-Hardened-FF0000?style=for-the-badge&logo=shield&logoColor=white)](.)
 
-👤 Resident Portal: For seamless complaint registration, facility booking, and payment receipt uploads.
+**A modern, secure, and full-featured web platform for digitizing housing society operations.**
 
-🛡️ Administrator Portal: For managing users, verifying financial records, and broadcasting announcements.
+*Built with enterprise-grade security practices by a cybersecurity student.*
 
-🛠️ Vendor Portal: For receiving tasks, updating work status, and ensuring service accountability.
+---
 
-Built With: MongoDB, Express.js, React.js, Node.js (MERN Stack).
+</div>
+
+## 📋 Overview
+
+NextGen Residency is a centralized web platform designed to digitize and streamline the operational workflow of modern housing societies. It replaces inefficient manual processes with a unified, transparent, and automated system built on the **MERN Stack** (MongoDB, Express.js, React.js, Node.js).
+
+The platform implements a **Triple-Portal Architecture**:
+
+| Portal | Description |
+|--------|-------------|
+| 👤 **Resident** | Complaint registration, facility booking, payment management |
+| 🛡️ **Administrator** | User management, financial verification, announcements |
+| 🛠️ **Vendor** | Task management, work status updates, service accountability |
 
 ## 🚀 Features
 
-### For Residents
-- 🏠 Dashboard with quick access to all services
-- 📢 View community announcements
-- 🛠️ Submit and track maintenance complaints
-- 🎾 Book facilities (swimming pool, gym, tennis court, etc.)
-- 👤 Manage profile and account settings
-- 📧 Receive email notifications for bookings and complaints
+### Resident Portal
+- 🏠 Personalized dashboard with quick access to all services
+- 📢 Real-time community announcements
+- 🛠️ Submit and track maintenance complaints with status updates
+- 🎾 Book community facilities (pool, gym, tennis court, etc.)
+- 💳 Upload payment receipts and track dues
+- 👤 Profile management with secure account settings
+- 📧 Email notifications for bookings, complaints, and updates
 
-### For Vendors
-- 📋 View assigned work/complaints
-- ✅ Update work status (in-progress, resolved)
-- 💬 Add work notes and comments
+### Vendor Portal
+- 📋 View and manage assigned complaints/work orders
+- ✅ Real-time work status updates (in-progress → resolved)
+- 💬 Add work notes and communicate with admins
 - 📊 Performance dashboard with statistics
 - 🔔 Email notifications for new assignments
 
-### For Administrators
-- 👥 User management (approve/reject registrations)
-- 🛠️ Complaint management (assign to vendors, track status)
-- 📅 Facility booking management (approve/reject)
-- 📊 Analytics dashboard with charts and reports
-- 📢 Create announcements for community
-- 📈 View system-wide statistics and trends
+### Administrator Portal
+- 👥 User management with approval workflow
+- 🛠️ Complaint lifecycle management (assign → track → resolve)
+- 📅 Facility booking approvals and scheduling
+- 📊 Analytics dashboard with interactive charts and reports
+- 📢 Community announcement broadcasting
+- 📈 System-wide statistics, trends, and audit logs
+- 💰 Payment verification and financial oversight
 
 ## 🛠️ Tech Stack
 
 ### Frontend
-- **React 18** - UI library
-- **Vite** - Build tool and dev server
-- **Tailwind CSS** - Utility-first CSS framework
-- **React Router** - Client-side routing
-- **Lucide React** - Icon library
-- **Axios** - HTTP client
+| Technology | Purpose |
+|-----------|---------|
+| **React 18** | Component-based UI library |
+| **Vite** | Next-gen build tool & dev server |
+| **Tailwind CSS** | Utility-first styling framework |
+| **React Router v7** | Client-side routing & navigation |
+| **TanStack Query** | Server state management & caching |
+| **Axios** | HTTP client with interceptors |
+| **Recharts** | Interactive data visualization |
 
 ### Backend
-- **Node.js** - Runtime environment
-- **Express** - Web framework
-- **MongoDB** - Database
-- **Mongoose** - ODM for MongoDB
-- **JWT** - Authentication
-- **Nodemailer** - Email service
-- **Multer** - File upload handling
-- **bcryptjs** - Password hashing
+| Technology | Purpose |
+|-----------|---------|
+| **Node.js + Express** | RESTful API server |
+| **MongoDB + Mongoose** | NoSQL database & ODM |
+| **JWT** | Stateless authentication with refresh tokens |
+| **bcryptjs** | Password hashing (salted) |
+| **Nodemailer** | Transactional email service |
+| **Multer** | Secure file upload handling |
+
+## 🔐 Security Architecture
+
+This platform was developed with a **security-first mindset**, implementing multiple layers of defense:
+
+### Authentication & Authorization
+- 🔑 **JWT with Refresh Tokens** — Short-lived access tokens + long-lived refresh tokens
+- 🔒 **Token Fingerprinting** — Binds tokens to client characteristics to prevent token theft
+- 🛡️ **Role-Based Access Control (RBAC)** — Granular permissions across three user roles
+- 🔐 **bcrypt Password Hashing** — Salted hashing with configurable work factor
+- 📱 **Two-Factor Authentication (2FA)** — Optional TOTP-based second factor
+
+### API Security
+- 🧱 **Helmet.js** — Comprehensive HTTP security headers (CSP, HSTS, X-Frame-Options)
+- 🚫 **CSRF Protection** — Double-submit cookie pattern with `csurf` middleware
+- 🛑 **Rate Limiting** — Configurable per-endpoint request throttling
+- 🧹 **Input Sanitization** — NoSQL injection prevention via `express-mongo-sanitize`
+- ✅ **Server-side Validation** — All inputs validated before processing
+
+### Data Protection
+- 🔐 **Field-Level Encryption** — Sensitive data encrypted at rest
+- 📁 **Secure File Handling** — Authenticated file access (no direct static serving)
+- 🦠 **Upload Validation** — File type verification and size limits
+- 📝 **Audit Logging** — Comprehensive trail of security-relevant events
+- 🔍 **Security Event Monitoring** — Suspicious activity detection and logging
+
+### Frontend Security
+- 🤖 **Google reCAPTCHA v2** — Bot prevention on authentication and contact forms
+- 🔒 **Protected Routes** — Client-side route guards with role verification
+- 🔄 **Automatic Token Refresh** — Seamless re-authentication without user interruption
+- 🧹 **Secure Session Cleanup** — Complete credential clearing on logout
 
 ## 📋 Prerequisites
 
-- Node.js (v14 or higher)
-- MongoDB (local or Atlas)
-- Gmail account for email notifications (or other SMTP)
+- **Node.js** v16 or higher
+- **MongoDB** (local instance or MongoDB Atlas cloud)
+- **Gmail account** with App Password for email notifications
 
-## 🚀 Installation
+## 🚀 Getting Started
 
-### 1. Clone the repository
+### 1. Clone the Repository
 ```bash
-git clone <your-repo-url>
+git clone https://github.com/UsmanPrime/Smart-Housing-Society-Website.git
 cd Smart-Housing-Society-Website
 ```
 
-### 2. Install dependencies
+### 2. Install Dependencies
 
-**Frontend:**
 ```bash
+# Frontend dependencies
 npm install
-```
 
-**Backend:**
-```bash
+# Backend dependencies
 cd server
 npm install
+cd ..
 ```
 
-### 3. Configure environment variables
+### 3. Configure Environment Variables
 
-Create `.env` file in the `server/` directory:
+Copy the example files and configure with your own credentials:
 
-```env
-# Database
-MONGO_URI=mongodb+srv://your-username:your-password@cluster.mongodb.net/smart-housing-db
-
-# JWT
-JWT_SECRET=your-secret-key-here
-
-# Email Configuration
-EMAIL_SERVICE=gmail
-EMAIL_USER=your-email@gmail.com
-EMAIL_PASS=your-app-password
-RECEIVER_EMAIL=admin@example.com
-
-# Server
-PORT=5000
-
-# Frontend URL (for email links)
-APP_URL=http://localhost:5173
-```
-
-**Important:** 
-- For Gmail, you need to use an [App Password](https://support.google.com/accounts/answer/185833)
-- Never commit the `.env` file to version control
-
-### 4. Start the application
-
-**Start Backend (Terminal 1):**
 ```bash
+# Frontend
+cp .env.example .env.development
+
+# Backend
+cd server
+# Create .env file with your database, email, and security keys
+```
+
+> ⚠️ **Security Note:** Never commit `.env` files to version control. All sensitive configuration is excluded via `.gitignore`.
+
+### 4. Start the Application
+
+```bash
+# Terminal 1 — Backend Server
 cd server
 npm start
-```
 
-**Start Frontend (Terminal 2):**
-```bash
+# Terminal 2 — Frontend Dev Server
 npm run dev
 ```
 
 The application will be available at:
-- Frontend: http://localhost:5173
-- Backend API: http://localhost:5000
+- **Frontend:** `http://localhost:5173`
+- **Backend API:** `http://localhost:5000`
 
 ## 📁 Project Structure
 
 ```
 Smart-Housing-Society-Website/
-├── server/                      # Backend
-│   ├── models/                  # MongoDB schemas
-│   ├── routes/                  # API endpoints
-│   ├── middleware/              # Custom middleware
-│   ├── utils/                   # Utility functions
-│   ├── uploads/                 # Uploaded files
-│   ├── server.js                # Main server file
-│   └── API-DOCUMENTATION.md     # API reference
+├── server/                      # Backend API
+│   ├── middleware/               # Auth, rate limiting, validation, upload security
+│   ├── models/                   # MongoDB schemas (User, Complaint, Booking, etc.)
+│   ├── routes/                   # RESTful API endpoints
+│   ├── utils/                    # Email, encryption, logging, token services
+│   ├── migrations/               # Database seeding scripts
+│   └── server.js                 # Express application entry point
 │
-├── src/                         # Frontend
-│   ├── components/              # React components
-│   ├── pages/                   # Page components
-│   ├── hooks/                   # Custom React hooks
-│   ├── services/                # API services
-│   ├── lib/                     # Utilities
-│   ├── assets/                  # Static assets
-│   ├── App.jsx                  # Main app component
-│   └── main.jsx                 # Entry point
+├── src/                          # React Frontend
+│   ├── components/               # Reusable UI components
+│   │   ├── Admin/                # Admin-specific components
+│   │   ├── Security/             # 2FA, security prompts
+│   │   ├── complaints/           # Complaint management UI
+│   │   ├── facility/             # Facility booking UI
+│   │   ├── vendor/               # Vendor portal components
+│   │   └── Payment/              # Payment management UI
+│   ├── pages/                    # Page-level components
+│   │   ├── admin/                # Admin pages (audit, reports, charges)
+│   │   └── dashboard/            # Role-specific dashboards
+│   ├── hooks/                    # Custom React hooks (auth, CSRF, state)
+│   ├── services/                 # API service layer
+│   ├── lib/                      # HTTP client, utilities
+│   ├── styles/                   # Global CSS & animations
+│   └── assets/                   # Images, icons
 │
-├── public/                      # Public assets
-├── vite.config.js               # Vite configuration
-└── tailwind.config.cjs          # Tailwind configuration
+├── public/                       # Static assets
+├── .env.example                  # Environment variable template
+├── vite.config.js                # Build configuration
+└── tailwind.config.cjs           # Styling configuration
 ```
 
-## 📖 API Documentation
+## 🎨 Design & UX
 
-Complete API documentation is available in `server/API-DOCUMENTATION.md`.
-
-### Key Endpoints:
-
-**Authentication:**
-- `POST /api/auth/register` - Register new user
-- `POST /api/auth/login` - Login
-- `POST /api/auth/forgot-password` - Request password reset
-
-**Complaints:**
-- `POST /api/complaints` - Create complaint
-- `GET /api/complaints` - List complaints
-- `PUT /api/complaints/:id` - Update complaint
-- `POST /api/complaints/:id/comments` - Add comment
-
-**Bookings:**
-- `POST /api/bookings` - Create booking
-- `GET /api/bookings` - List bookings
-- `PUT /api/bookings/:id/approve` - Approve booking (admin)
-- `PUT /api/bookings/:id/reject` - Reject booking (admin)
-
-**Analytics:**
-- `GET /api/analytics/complaints` - Complaints analytics
-- `GET /api/analytics/bookings` - Bookings analytics
-- `GET /api/analytics/overview` - System overview
-
-## 🧪 Testing
-
-### Manual Testing
-
-1. **User Registration Flow:**
-   - Go to `/register`
-   - Fill form and submit
-   - Check email for registration notification
-   - Admin approves user
-   - User receives approval email
-
-2. **Complaint Flow:**
-   - Resident creates complaint
-   - Admin assigns to vendor
-   - Vendor receives email notification
-   - Vendor updates status
-   - Resident receives status update email
-
-3. **Booking Flow:**
-   - Resident books facility
-   - Admin receives notification
-   - Admin approves/rejects
-   - Resident receives confirmation email
-   - 1 hour before booking, reminder email sent
-
-## 🔐 Default Admin Account
-
-For initial setup, you can create an admin account manually in MongoDB:
-
-```javascript
-{
-  name: "Admin",
-  email: "admin@smarthousing.com",
-  password: "$2a$10$...", // Use bcryptjs to hash password
-  role: "admin",
-  status: "approved"
-}
-```
-
-Or use the migration script:
-```bash
-cd server
-node migrations/create-admin.js
-```
-
-## 🎨 Customization
-
-### Update Branding
-- Logo: Replace `public/logo.svg`
-- Colors: Edit `tailwind.config.cjs`
-- Email templates: Edit `server/utils/emailTemplates.js`
-
-### Add New Features
-- Frontend: Add components in `src/components/`
-- Backend: Add routes in `server/routes/`
-- Models: Add schemas in `server/models/`
+- **Glassmorphism** navigation with dynamic blur effects
+- **Parallax scrolling** hero section with gradient overlays
+- **Intersection Observer** powered scroll-reveal animations
+- **Staggered card transitions** with cubic-bezier timing
+- **Responsive design** with mobile hamburger navigation
+- **Custom scrollbar** and smooth scroll-to-top functionality
+- **Premium gradient** color system throughout all components
 
 ## 📦 Production Deployment
 
@@ -249,41 +216,34 @@ node migrations/create-admin.js
 npm run build
 ```
 
-### Deploy Backend
-1. Set up MongoDB Atlas
-2. Configure environment variables on hosting platform
-3. Deploy to Heroku, Vercel, or AWS
+### Deploy
+1. **Frontend** → Vercel or any static hosting
+2. **Backend** → Render, Railway, or any Node.js hosting
+3. **Database** → MongoDB Atlas (cloud)
 
-### Environment Variables (Production)
-Update all URLs to production values:
-- `APP_URL` - Your production frontend URL
-- `MONGO_URI` - Production MongoDB connection string
+> Set all environment variables on your hosting platform. Never hardcode credentials.
 
 ## 🤝 Contributing
 
 1. Fork the repository
-2. Create feature branch (`git checkout -b feature/AmazingFeature`)
-3. Commit changes (`git commit -m 'Add some AmazingFeature'`)
-4. Push to branch (`git push origin feature/AmazingFeature`)
-5. Open Pull Request
+2. Create a feature branch (`git checkout -b feature/YourFeature`)
+3. Commit changes (`git commit -m 'Add YourFeature'`)
+4. Push to branch (`git push origin feature/YourFeature`)
+5. Open a Pull Request
 
 ## 📝 License
 
 This project is licensed under the MIT License.
 
-## 📧 Support
+## 📧 Contact
 
-For issues or questions:
-- Email: uarmy285@gmail.com
-- GitHub Issues: [Create an issue](https://github.com/your-repo/issues)
-
-## 🙏 Acknowledgments
-
-- React team for the amazing library
-- Tailwind CSS for the utility-first framework
-- MongoDB for the flexible database
-- All contributors and testers
+For questions or issues:
+- **GitHub Issues:** [Create an issue](https://github.com/UsmanPrime/Smart-Housing-Society-Website/issues)
 
 ---
 
-**Built with ❤️ for Smart Housing Communities**
+<div align="center">
+
+**Built with security in mind for smart housing communities** 🏠🔐
+
+</div>
