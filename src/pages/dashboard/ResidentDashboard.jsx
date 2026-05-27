@@ -41,6 +41,14 @@ export default function ResidentDashboard() {
   useEffect(() => { 
     fetchBookings(); 
     fetchComplaints();
+
+    // Poll for dynamic live data every 15 seconds
+    const intervalId = setInterval(() => {
+      fetchBookings();
+      fetchComplaints();
+    }, 15000);
+
+    return () => clearInterval(intervalId);
   }, [fetchBookings, fetchComplaints]);
 
   // Fetch payment dues
@@ -62,6 +70,10 @@ export default function ResidentDashboard() {
     };
     
     fetchPaymentDues();
+    
+    // Poll for dynamic live payment dues every 15 seconds
+    const intervalId = setInterval(fetchPaymentDues, 15000);
+    return () => clearInterval(intervalId);
   }, [user]);
 
   const myBookings = listMyBookings(user?.id || '');

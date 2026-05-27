@@ -66,6 +66,14 @@ export default function VendorDashboard() {
 
     fetchStats();
     fetchRecent();
+
+    // Poll for dynamic live data every 15 seconds
+    const intervalId = setInterval(() => {
+      fetchStats();
+      fetchRecent();
+    }, 15000);
+
+    return () => clearInterval(intervalId);
   }, []);
 
   const submitNewService = async () => {

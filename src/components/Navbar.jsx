@@ -277,7 +277,7 @@ function Navbar() {
 
       {/* Click outside to close dropdown */}
       {showDropdown && (
-        <div className="fixed inset-0 z-40" onClick={() => setShowDropdown(false)}></div>
+        <div className="fixed inset-0 z-10" onClick={() => setShowDropdown(false)}></div>
       )}
     </header>
   );
