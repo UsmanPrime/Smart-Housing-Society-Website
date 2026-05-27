@@ -143,15 +143,20 @@ app.get('/api/csrf-token', csrfProtection, (req, res) => {
 // Apply CSRF protection to state-changing operations
 app.use('/api/*', (req, res, next) => {
   // Skip CSRF for GET requests and specific endpoints
+  const requestPath = req.originalUrl.split('?')[0];
   const skipCSRF = [
     req.method === 'GET',
     req.method === 'HEAD',
     req.method === 'OPTIONS',
-    req.path === '/api/csrf-token',
-    req.path.startsWith('/api/auth/login'),
-    req.path.startsWith('/api/auth/register'),
-    req.path.startsWith('/api/auth/refresh-token'),
-    req.path.startsWith('/api/contact') // Contact form uses reCAPTCHA for protection
+    requestPath.endsWith('/api/csrf-token'),
+    requestPath.includes('/api/auth/login'),
+    requestPath.includes('/api/auth/register'),
+    requestPath.includes('/api/auth/refresh-token'),
+    requestPath.includes('/api/auth/forgot-password'),
+    requestPath.includes('/api/auth/reset-password'),
+    requestPath.includes('/api/auth/verify-otp'),
+    requestPath.includes('/api/2fa/verify'),
+    requestPath.includes('/api/contact') // Contact form uses reCAPTCHA for protection
   ].some(condition => condition);
   
   if (skipCSRF) {
