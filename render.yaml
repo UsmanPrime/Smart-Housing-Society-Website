@@ -1,0 +1,41 @@
+services:
+  - type: web
+    name: nextgen-residency
+    env: node
+    region: singapore
+    plan: free
+    branch: main
+    rootDir: server
+    buildCommand: npm install
+    startCommand: npm start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: MONGO_URI
+        fromDatabase:
+          name: nextgen-db
+          property: connectionString
+      - key: MONGODB_URI
+        fromDatabase:
+          name: nextgen-db
+          property: connectionString
+      - key: JWT_SECRET
+        generateValue: true
+      - key: JWT_REFRESH_SECRET
+        generateValue: true
+      - key: ENCRYPTION_KEY
+        generateValue: true
+      - key: EMAIL_USER
+        sync: false
+      - key: EMAIL_PASS
+        sync: false
+      - key: EMAIL_HOST
+        value: smtp.gmail.com
+      - key: EMAIL_PORT
+        value: 587
+      - key: SECURITY_EMAIL
+        sync: false
+      - key: RECEIVER_EMAIL
+        sync: false
+      - key: FRONTEND_URL
+        sync: false
