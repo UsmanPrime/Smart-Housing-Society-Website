@@ -2,6 +2,7 @@
 
 <div align="center">
 
+[![Live Demo](https://img.shields.io/badge/🌐_Live_Demo-Visit_Site-0078D4?style=for-the-badge)](https://nextgen-residency.vercel.app/)
 [![MERN Stack](https://img.shields.io/badge/Stack-MERN-47A248?style=for-the-badge&logo=mongodb&logoColor=white)](https://www.mongodb.com/)
 [![React](https://img.shields.io/badge/React-18.2-61DAFB?style=for-the-badge&logo=react&logoColor=white)](https://reactjs.org/)
 [![Node.js](https://img.shields.io/badge/Node.js-Express-339933?style=for-the-badge&logo=node.js&logoColor=white)](https://nodejs.org/)
@@ -10,6 +11,8 @@
 **A modern, secure, and full-featured web platform for digitizing housing society operations.**
 
 *Built with enterprise-grade security practices by a cybersecurity student.*
+
+🔗 **[View Live Application →](https://nextgen-residency.vercel.app/)**
 
 ---
 
@@ -30,7 +33,7 @@ The platform implements a **Triple-Portal Architecture**:
 ## 🚀 Features
 
 ### Resident Portal
-- 🏠 Personalized dashboard with quick access to all services
+- 🏠 Personalized dashboard with live, dynamically updating data
 - 📢 Real-time community announcements
 - 🛠️ Submit and track maintenance complaints with status updates
 - 🎾 Book community facilities (pool, gym, tennis court, etc.)
@@ -42,7 +45,7 @@ The platform implements a **Triple-Portal Architecture**:
 - 📋 View and manage assigned complaints/work orders
 - ✅ Real-time work status updates (in-progress → resolved)
 - 💬 Add work notes and communicate with admins
-- 📊 Performance dashboard with statistics
+- 📊 Performance dashboard with live statistics
 - 🔔 Email notifications for new assignments
 
 ### Administrator Portal
@@ -86,83 +89,27 @@ This platform was developed with a **security-first mindset**, implementing mult
 - 🔒 **Token Fingerprinting** — Binds tokens to client characteristics to prevent token theft
 - 🛡️ **Role-Based Access Control (RBAC)** — Granular permissions across three user roles
 - 🔐 **bcrypt Password Hashing** — Salted hashing with configurable work factor
-- 📱 **Two-Factor Authentication (2FA)** — Optional TOTP-based second factor
+- 📱 **Two-Factor Authentication (2FA)** — Optional TOTP-based second factor with backup codes
 
 ### API Security
 - 🧱 **Helmet.js** — Comprehensive HTTP security headers (CSP, HSTS, X-Frame-Options)
 - 🚫 **CSRF Protection** — Double-submit cookie pattern with `csurf` middleware
-- 🛑 **Rate Limiting** — Configurable per-endpoint request throttling
+- 🛑 **Rate Limiting** — Configurable per-endpoint request throttling with progressive delays
 - 🧹 **Input Sanitization** — NoSQL injection prevention via `express-mongo-sanitize`
 - ✅ **Server-side Validation** — All inputs validated before processing
 
 ### Data Protection
 - 🔐 **Field-Level Encryption** — Sensitive data encrypted at rest
-- 📁 **Secure File Handling** — Authenticated file access (no direct static serving)
+- 📁 **Secure File Handling** — Authenticated file access with no direct static serving
 - 🦠 **Upload Validation** — File type verification and size limits
-- 📝 **Audit Logging** — Comprehensive trail of security-relevant events
-- 🔍 **Security Event Monitoring** — Suspicious activity detection and logging
+- 📝 **Audit Logging** — Comprehensive trail of all security-relevant events
+- 🔍 **Security Event Monitoring** — Suspicious activity detection and alerting
 
 ### Frontend Security
 - 🤖 **Google reCAPTCHA v2** — Bot prevention on authentication and contact forms
 - 🔒 **Protected Routes** — Client-side route guards with role verification
 - 🔄 **Automatic Token Refresh** — Seamless re-authentication without user interruption
 - 🧹 **Secure Session Cleanup** — Complete credential clearing on logout
-
-## 📋 Prerequisites
-
-- **Node.js** v16 or higher
-- **MongoDB** (local instance or MongoDB Atlas cloud)
-- **Gmail account** with App Password for email notifications
-
-## 🚀 Getting Started
-
-### 1. Clone the Repository
-```bash
-git clone https://github.com/UsmanPrime/Smart-Housing-Society-Website.git
-cd Smart-Housing-Society-Website
-```
-
-### 2. Install Dependencies
-
-```bash
-# Frontend dependencies
-npm install
-
-# Backend dependencies
-cd server
-npm install
-cd ..
-```
-
-### 3. Configure Environment Variables
-
-Copy the example files and configure with your own credentials:
-
-```bash
-# Frontend
-cp .env.example .env.development
-
-# Backend
-cd server
-# Create .env file with your database, email, and security keys
-```
-
-> ⚠️ **Security Note:** Never commit `.env` files to version control. All sensitive configuration is excluded via `.gitignore`.
-
-### 4. Start the Application
-
-```bash
-# Terminal 1 — Backend Server
-cd server
-npm start
-
-# Terminal 2 — Frontend Dev Server
-npm run dev
-```
-
-The application will be available at:
-- **Frontend:** `http://localhost:5173`
-- **Backend API:** `http://localhost:5000`
 
 ## 📁 Project Structure
 
@@ -194,7 +141,6 @@ Smart-Housing-Society-Website/
 │   └── assets/                   # Images, icons
 │
 ├── public/                       # Static assets
-├── .env.example                  # Environment variable template
 ├── vite.config.js                # Build configuration
 └── tailwind.config.cjs           # Styling configuration
 ```
@@ -208,41 +154,18 @@ Smart-Housing-Society-Website/
 - **Responsive design** with mobile hamburger navigation
 - **Custom scrollbar** and smooth scroll-to-top functionality
 - **Premium gradient** color system throughout all components
-
-## 📦 Production Deployment
-
-### Build Frontend
-```bash
-npm run build
-```
-
-### Deploy
-1. **Frontend** → Vercel or any static hosting
-2. **Backend** → Render, Railway, or any Node.js hosting
-3. **Database** → MongoDB Atlas (cloud)
-
-> Set all environment variables on your hosting platform. Never hardcode credentials.
-
-## 🤝 Contributing
-
-1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/YourFeature`)
-3. Commit changes (`git commit -m 'Add YourFeature'`)
-4. Push to branch (`git push origin feature/YourFeature`)
-5. Open a Pull Request
-
-## 📝 License
-
-This project is licensed under the MIT License.
+- **Live dashboard polling** — Data refreshes automatically every 15 seconds
 
 ## 📧 Contact
 
-For questions or issues:
+For questions or feedback:
 - **GitHub Issues:** [Create an issue](https://github.com/UsmanPrime/Smart-Housing-Society-Website/issues)
 
 ---
 
 <div align="center">
+
+🔗 **[View Live Application →](https://nextgen-residency.vercel.app/)**
 
 **Built with security in mind for smart housing communities** 🏠🔐
 
