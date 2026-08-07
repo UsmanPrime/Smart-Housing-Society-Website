@@ -191,7 +191,7 @@ export default function ContactForm() {
               Get In Touch
             </span>
             <h2 className="text-4xl md:text-5xl text-[#0b1a4a]" style={{ fontFamily: "'DM Serif Display', serif" }}>
-              Let's Talk
+              Contact NextGen Residency Sales
             </h2>
             <p className="text-[#0b1a4a]/70 text-lg mt-3" style={{ fontFamily: "'Poppins', sans-serif" }}>
               Contact us today to learn more about our services.

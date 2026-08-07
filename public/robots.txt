@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://nextgen-residency.vercel.app/sitemap.xml
