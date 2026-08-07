@@ -59,10 +59,14 @@ function Navbar() {
     try {
       // Call logout endpoint to invalidate refresh token
       const refreshToken = localStorage.getItem('refreshToken');
+      const csrfToken = sessionStorage.getItem('csrfToken');
       if (refreshToken) {
         await fetch(`${import.meta.env.VITE_API_BASE || 'http://localhost:5000'}/api/auth/logout`, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: { 
+            'Content-Type': 'application/json',
+            ...(csrfToken && { 'X-CSRF-Token': csrfToken })
+          },
           body: JSON.stringify({ refreshToken }),
         }).catch(() => {}); // Ignore errors, still clear local storage
       }

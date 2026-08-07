@@ -2,7 +2,7 @@ import express from 'express';
 import Complaint from '../models/Complaint.js';
 import User from '../models/User.js';
 import auth, { requireRole } from '../middleware/auth.js';
-import { notifyComplaintAssignment } from '../utils/notificationService.js';
+import { notifyComplaintAssignment, notifyComplaintStatusChange, notifyNewComment } from '../utils/notificationService.js';
 import ResidentDue from '../models/ResidentDue.js';
 import Charge from '../models/Charge.js';
 import { logAction } from '../utils/auditLogger.js';
@@ -174,6 +174,7 @@ router.put('/:id', auth, async (req, res) => {
     const isAssigned = complaint.assignedTo && complaint.assignedTo.toString() === req.user.id;
     const isAdmin = req.user.role === 'admin';
     const isVendor = req.user.role === 'vendor';
+    const originalStatus = complaint.status;
 
     // Define what fields each role can update
     const { title, description, location, status, priority, assignedTo } = req.body;
@@ -246,6 +247,14 @@ router.put('/:id', auth, async (req, res) => {
     await complaint.save();
     await complaint.populate('submittedBy', 'name email');
     await complaint.populate('assignedTo', 'name email');
+
+    if (originalStatus !== complaint.status) {
+      try {
+        notifyComplaintStatusChange(complaint._id, complaint.status);
+      } catch (e) {
+        console.warn('Failed to send status notification:', e?.message || e);
+      }
+    }
 
     res.json({
       success: true,
@@ -346,9 +355,24 @@ router.post('/:id/comments', auth, async (req, res) => {
       authorName: displayName
     });
 
-    await complaint.save();
-
-    // TODO: Send notification to relevant parties (implement in notificationService)
+    // Send notification to relevant parties (owner or assigned vendor)
+    try {
+      const newComment = complaint.comments[complaint.comments.length - 1];
+      if (req.user.role === 'admin' || (req.user.role === 'vendor' && isAssigned)) {
+        // Notify resident if admin or vendor comments
+        if (complaint.submittedBy) {
+          notifyNewComment(complaint._id, newComment, complaint.submittedBy._id);
+        }
+      }
+      if (req.user.role === 'admin' || (req.user.role === 'resident' && isOwner)) {
+        // Notify vendor if admin or resident comments
+        if (complaint.assignedTo) {
+          notifyNewComment(complaint._id, newComment, complaint.assignedTo._id);
+        }
+      }
+    } catch (e) {
+      console.warn('Failed to send comment notification:', e?.message || e);
+    }
 
     res.status(201).json({
       success: true,
@@ -450,7 +474,7 @@ router.put('/:id/assign', auth, requireRole('admin'), async (req, res) => {
   }
 });
 
-export default router;
+
 
 // PUT /api/complaints/:id/verify-completion - Admin verifies vendor completion and issues payment due
 router.put('/:id/verify-completion', auth, requireRole('admin'), async (req, res) => {
@@ -522,3 +546,5 @@ router.put('/:id/verify-completion', auth, requireRole('admin'), async (req, res
     res.status(500).json({ success: false, message: 'Error verifying completion', error: error.message });
   }
 });
+
+export default router;

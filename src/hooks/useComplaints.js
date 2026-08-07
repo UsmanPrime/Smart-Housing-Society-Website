@@ -11,9 +11,13 @@ const getAuthToken = () => {
 // Helper function for API requests
 const apiRequest = async (endpoint, options = {}) => {
   const token = getAuthToken()
+  const csrfToken = sessionStorage.getItem('csrfToken')
+  const isStateChanging = options.method && ['POST', 'PUT', 'DELETE', 'PATCH'].includes(options.method.toUpperCase())
+  
   const headers = {
     'Content-Type': 'application/json',
     ...(token && { 'Authorization': `Bearer ${token}` }),
+    ...(isStateChanging && csrfToken && { 'X-CSRF-Token': csrfToken }),
     ...options.headers,
   }
 

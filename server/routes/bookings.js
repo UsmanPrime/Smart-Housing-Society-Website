@@ -125,10 +125,23 @@ router.post('/', authenticateToken, async (req, res) => {
     });
     
     // Send notification to admins
-    const admins = await User.find({ role: 'admin', status: 'approved' });
-    for (const admin of admins) {
-      // TODO: Implement admin notification email
-      console.log(`Notify admin ${admin.email} about new booking ${booking._id}`);
+    try {
+      const admins = await User.find({ role: 'admin', status: 'approved' });
+      for (const admin of admins) {
+        if (admin.email) {
+          const html = `
+            <h2>New Facility Booking Request</h2>
+            <p><strong>Resident:</strong> ${req.user.name}</p>
+            <p><strong>Facility:</strong> ${facility.name}</p>
+            <p><strong>Start Time:</strong> ${new Date(startTime).toLocaleString()}</p>
+            <p><strong>End Time:</strong> ${new Date(endTime).toLocaleString()}</p>
+            <p>Please log in to the admin dashboard to approve or reject this booking.</p>
+          `;
+          await sendEmail({ to: admin.email, subject: 'New Facility Booking Request', html });
+        }
+      }
+    } catch (e) {
+      console.warn('Failed to send admin booking notification:', e?.message || e);
     }
     
     res.status(201).json({

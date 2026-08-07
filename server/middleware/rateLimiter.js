@@ -65,7 +65,7 @@ export const uploadLimiter = rateLimit({
  */
 export const reportLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 5, // Only 5 reports per 15 minutes
+  max: 30, // Increased to 30 to allow concurrent dashboard queries
   message: {
     success: false,
     message: 'Too many report requests from this IP, please try again later'

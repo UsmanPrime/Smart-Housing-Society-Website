@@ -12,6 +12,7 @@ import adminImg from "../assets/admin.jpg";
 import book from "../assets/book.jpg";
 import PaymentDuesTable from "../components/Payment/PaymentDuesTable";
 import PaymentHistory from "../components/Payment/PaymentHistory";
+import { api } from "../lib/api";
 
 const cards = [
   { title: "Multi-Channel", subtitle: "Payment Proof", img: calendar },
@@ -32,7 +33,8 @@ export default function PaymentsPage() {
   
   // Payment form state
   const [formData, setFormData] = useState({
-    charge: "",
+    dueId: "",
+    chargeTitle: "",
     amountPaid: "",
     transactionDate: "",
     transactionTime: "",
@@ -40,6 +42,7 @@ export default function PaymentsPage() {
     remarks: "",
   });
   const [receiptFileName, setReceiptFileName] = useState("No file chosen");
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Status message
   const [status, setStatus] = useState({ type: null, message: "" });
@@ -48,6 +51,16 @@ export default function PaymentsPage() {
   const scrollToFeatures = () => {
     const el = document.getElementById("payment-features");
     if (el) el.scrollIntoView({ behavior: "smooth" });
+  };
+
+  const handlePayNow = (due) => {
+    setFormData(prev => ({
+      ...prev,
+      dueId: due.id,
+      chargeTitle: due.title,
+      amountPaid: due.amount,
+    }));
+    setTab("payment");
   };
 
   const handleInputChange = (e) => {
@@ -66,35 +79,64 @@ export default function PaymentsPage() {
     }
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     setStatus({ type: null, message: "" });
+    setIsSubmitting(true);
+
+    if (!formData.dueId) {
+      setStatus({ type: "error", message: "Please select a due from the Pending Dues tab." });
+      setIsSubmitting(false);
+      return;
+    }
 
     try {
-      // ...submit to API or your handler...
-      console.log("Form submitted:", formData);
+      const data = new FormData();
+      data.append("amount", formData.amountPaid);
+      data.append("transactionDate", formData.transactionDate);
+      data.append("transactionTime", formData.transactionTime);
+      data.append("remarks", formData.remarks);
+      if (formData.receiptImage) {
+        data.append("receipt", formData.receiptImage);
+      } else {
+        setStatus({ type: "error", message: "Receipt image is required." });
+        setIsSubmitting(false);
+        return;
+      }
 
-      // Simulate success
-      setStatus({
-        type: "success",
-        message: "Payment receipt submitted successfully!",
-      });
+      const result = await api.post(`/api/payments/receipts/upload/${formData.dueId}`, data);
 
-      // Optional: reset form
-      setFormData({
-        charge: "",
-        amountPaid: "",
-        transactionDate: "",
-        transactionTime: "",
-        receiptImage: null,
-        remarks: "",
-      });
-      setReceiptFileName("No file chosen");
+      if (result.success) {
+        setStatus({
+          type: "success",
+          message: "Payment receipt submitted successfully! Awaiting verification.",
+        });
+
+        // Reset form
+        setFormData({
+          dueId: "",
+          chargeTitle: "",
+          amountPaid: "",
+          transactionDate: "",
+          transactionTime: "",
+          receiptImage: null,
+          remarks: "",
+        });
+        setReceiptFileName("No file chosen");
+      } else {
+        setStatus({
+          type: "error",
+          message: result.message || "There was an error submitting your receipt.",
+        });
+      }
     } catch (err) {
+      console.error(err);
       setStatus({
         type: "error",
-        message: "There was an error submitting your receipt. Please try again.",
+        message: "There was a network error. Please try again.",
       });
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -249,31 +291,30 @@ export default function PaymentsPage() {
               </button>
             </div>
 
-            {tab === "dues" && <PaymentDuesTable onPayNow={() => setTab("payment")} />}
+            {tab === "dues" && <PaymentDuesTable onPayNow={handlePayNow} />}
             
             {tab === "payment" && (
               <div className="max-w-4xl mx-auto">
                 <h3 className="text-2xl font-semibold text-[#06164a] mb-6">Upload Payment Receipt</h3>
+                {!formData.dueId ? (
+                  <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4 mb-6">
+                    <p className="text-yellow-700 font-medium">Please select a due from the "Pending Dues" tab first.</p>
+                  </div>
+                ) : null}
                 <form onSubmit={handleSubmit} className="space-y-5">
-                  {/* Charge Selection */}
+                  {/* Charge Selection (Read Only) */}
                   <div>
-                    <label htmlFor="charge" className="block text-base font-medium text-[#06164a] mb-2">
-                      Charge
+                    <label htmlFor="chargeTitle" className="block text-base font-medium text-[#06164a] mb-2">
+                      Selected Charge
                     </label>
-                    <select
-                      id="charge"
-                      name="charge"
-                      value={formData.charge}
-                      onChange={handleInputChange}
-                      required
-                      className="w-full px-4 py-3 bg-[#06164a] text-white rounded-md focus:outline-none focus:ring-2 focus:ring-[#06164a] transition-all"
-                    >
-                      <option value="">Select Charge</option>
-                      <option value="maintenance">Maintenance Fee</option>
-                      <option value="parking">Parking Fee</option>
-                      <option value="utility">Utility Bill</option>
-                      <option value="other">Other</option>
-                    </select>
+                    <input
+                      type="text"
+                      id="chargeTitle"
+                      name="chargeTitle"
+                      value={formData.chargeTitle || "None selected"}
+                      readOnly
+                      className="w-full px-4 py-3 bg-[#06164a] text-white/70 rounded-md focus:outline-none transition-all cursor-not-allowed"
+                    />
                   </div>
 
                   {/* Amount Paid */}

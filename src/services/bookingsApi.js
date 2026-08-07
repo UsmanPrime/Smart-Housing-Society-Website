@@ -5,9 +5,13 @@ const BASE = `${API_BASE}/api`;
 
 async function api(url, opts = {}) {
   const token = localStorage.getItem('token');
+  const csrfToken = sessionStorage.getItem('csrfToken');
+  const isStateChanging = opts.method && ['POST', 'PUT', 'DELETE', 'PATCH'].includes(opts.method.toUpperCase());
+  
   const headers = {
     'Content-Type': 'application/json',
-    ...(token && { 'Authorization': `Bearer ${token}` })
+    ...(token && { 'Authorization': `Bearer ${token}` }),
+    ...(isStateChanging && csrfToken && { 'X-CSRF-Token': csrfToken })
   };
 
   try {

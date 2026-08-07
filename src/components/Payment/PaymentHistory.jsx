@@ -25,7 +25,7 @@ export default function PaymentHistory() {
         
         const response = await api.get(url);
         if (response.success) {
-          setItems(response.payments || []);
+          setItems(response.data || []);
         }
       } catch (err) {
         console.error("Error fetching payment history:", err);
@@ -38,6 +38,7 @@ export default function PaymentHistory() {
   }, [range.from, range.to, statusFilter]);
 
   const withinRange = (d) => {
+    if (!d) return false;
     const dt = new Date(d);
     const from = range.from ? new Date(range.from) : null;
     const to = range.to ? new Date(range.to) : null;
@@ -46,7 +47,7 @@ export default function PaymentHistory() {
     return true;
   };
 
-  const filtered = items.filter(i => withinRange(i.date));
+  const filtered = items.filter(i => withinRange(i.createdAt));
 
   const downloadReceipt = async (item) => {
     if (item.receiptImageUrl) {
@@ -132,7 +133,7 @@ export default function PaymentHistory() {
           <tbody>
             {filtered.map(item => (
               <tr key={item._id} className="border-t">
-                <td className="px-4 py-3">{item.dueTitle || item.chargeTitle || "Payment"}</td>
+                <td className="px-4 py-3">{item.dueId?.chargeId?.title || "Payment"}</td>
                 <td className="px-4 py-3">PKR {item.amount}</td>
                 <td className="px-4 py-3">{new Date(item.createdAt).toLocaleDateString()}</td>
                 <td className="px-4 py-3">

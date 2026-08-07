@@ -21,9 +21,14 @@ async function request(path, { method = 'GET', body, token, headers, skipAuth = 
   // Request interceptor: Add auth token automatically if not skipped
   const authToken = skipAuth ? token : (token || getAuthToken())
   
+  // Get CSRF token for state-changing requests
+  const csrfToken = sessionStorage.getItem('csrfToken')
+  const isStateChanging = ['POST', 'PUT', 'DELETE', 'PATCH'].includes(method.toUpperCase())
+  
   const requestHeaders = {
     ...(body instanceof FormData ? {} : { 'Content-Type': 'application/json' }),
     ...(authToken ? { Authorization: `Bearer ${authToken}` } : {}),
+    ...(isStateChanging && csrfToken ? { 'X-CSRF-Token': csrfToken } : {}),
     ...headers,
   }
 

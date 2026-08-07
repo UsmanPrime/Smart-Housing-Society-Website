@@ -17,7 +17,15 @@ export default function PaymentDuesTable({ onPayNow }) {
       try {
         const response = await api.get("/api/payments/dues/my-dues");
         if (response.success) {
-          setDues(response.dues || []);
+          // Map backend data to frontend expected format
+          const mappedDues = (response.data || []).map(due => ({
+            id: due._id,
+            title: due.chargeId?.title || "Payment Due",
+            amount: due.amount,
+            dueDate: new Date(due.dueDate).toLocaleDateString(),
+            status: due.status
+          }));
+          setDues(mappedDues);
         }
       } catch (err) {
         console.error("Error fetching dues:", err);

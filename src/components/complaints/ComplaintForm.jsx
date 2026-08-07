@@ -79,10 +79,12 @@ export default function ComplaintForm({ onSuccess }) {
       formData.append('image', imageFile)
       
       const token = localStorage.getItem('token')
+      const csrfToken = sessionStorage.getItem('csrfToken')
       const response = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000'}/api/upload/complaint-image`, {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${token}`
+          'Authorization': `Bearer ${token}`,
+          ...(csrfToken && { 'X-CSRF-Token': csrfToken })
         },
         body: formData
       })
